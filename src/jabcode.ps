@@ -1,0 +1,1068 @@
+%!PS
+
+% Barcode Writer in Pure PostScript
+% https://bwipp.terryburton.co.uk
+%
+% Copyright (c) 2004-2018 Terry Burton
+%
+% Permission is hereby granted, free of charge, to any
+% person obtaining a copy of this software and associated
+% documentation files (the "Software"), to deal in the
+% Software without restriction, including without
+% limitation the rights to use, copy, modify, merge,
+% publish, distribute, sublicense, and/or sell copies of
+% the Software, and to permit persons to whom the Software
+% is furnished to do so, subject to the following
+% conditions:
+%
+% The above copyright notice and this permission notice
+% shall be included in all copies or substantial portions
+% of the Software.
+%
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+% KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+% THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+% PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+% THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+% DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+% CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+% CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+% IN THE SOFTWARE.
+
+%%BeginResource: Category uk.co.terryburton.bwipp 0.0 2018052000 29629 32838
+%%BeginData:          6 ASCII Lines
+currentglobal
+true setglobal
+/Generic /Category findresource dup length 1 add dict copy dup
+/InstanceType /setpacking where {pop /packedarraytype} {/arraytype} ifelse put
+/uk.co.terryburton.bwipp exch /Category defineresource pop
+setglobal
+%%EndData
+%%EndResource
+
+%%BeginResource: uk.co.terryburton.bwipp raiseerror 0.0 2018052000 153516 39847
+%%BeginData:         13 ASCII Lines
+/setpacking where {pop currentpacking true setpacking} if
+1 dict
+begin
+/raiseerror {
+  $error exch /errorinfo exch put
+  $error exch /errorname exch put
+  $error /command null put
+  $error /newerror true put
+  stop
+} bind def
+/raiseerror dup load /uk.co.terryburton.bwipp defineresource pop
+end
+/setpacking where {pop setpacking} if
+%%EndData
+%%EndResource
+
+%%BeginResource: uk.co.terryburton.bwipp renmatrix 0.0 2018052000 111547 110446
+%%BeginData:        355 ASCII Lines
+/setpacking where {pop currentpacking true setpacking} if
+1 dict
+dup /raiseerror dup /uk.co.terryburton.bwipp findresource put
+begin
+/renmatrix {
+
+    20 dict begin
+
+    /args exch def
+
+    % Default options
+    /width 1 def
+    /height 1 def
+    /barcolor (unset) def
+    /backgroundcolor (unset) def
+    /colormap (unset) def
+    /dotty false def
+    /inkspread 0 def
+    /inkspreadh 0 def
+    /inkspreadv 0 def
+    /includetext false def
+    /txt [] def
+    /textcolor (unset) def
+    /textxalign (unset) def
+    /textyalign (unset) def
+    /textfont (Courier) def
+    /textsize 10 def
+    /textxoffset 0 def
+    /textyoffset 0 def
+    /textgaps 0 def
+    /alttext () def
+
+    % Apply the renderer options and the user options
+    args {def} forall
+    opt {def} forall
+
+    /width width cvr def
+    /height height cvr def
+    /barcolor barcolor cvlit def
+    /backgroundcolor backgroundcolor cvlit def
+    /inkspread inkspread cvr def
+    /inkspreadh inkspreadh cvr def
+    /inkspreadv inkspreadv cvr def
+    /textcolor textcolor cvlit def
+    /textxalign textxalign cvlit def
+    /textyalign textyalign cvlit def
+    /textfont textfont cvlit def
+    /textsize textsize cvr def
+    /textxoffset textxoffset cvr def
+    /textyoffset textyoffset cvr def
+    /textgaps textgaps cvr def
+    /alttext alttext cvlit def
+
+    inkspread 0 ne {/inkspreadh inkspread def} if
+    inkspread 0 ne {/inkspreadv inkspread def} if
+
+    /xyget      { pixx mul add pixs exch get                   } bind def
+    /xyinvert   { pixx mul add pixs exch 2 copy get 1 xor put  } bind def
+    /mxyget     { pixx mul add m exch get 2#001 and            } bind def
+    /mxyset     { pixx mul add m exch 3 -1 roll put            } bind def
+    /msetborder { pixx mul add m exch 2 copy get 2#010 or put  } bind def
+    /mborderoff { pixx mul add m exch 2 copy get 2#100 or put  } bind def
+    /misborder  { pixx mul add m exch get 2#110 and 2#010 eq   } bind def
+    /mclear     { pixx mul add m exch 2 copy get 2#001 and put } bind def
+    /mclear4 {
+        2 copy                       mclear
+        2 copy 1 add                 mclear
+        2 copy exch 1 add exch       mclear
+        2 copy exch 1 add exch       mclear
+               1 add exch 1 add exch mclear
+    } bind def
+
+    /trace {
+        % Walk the outline of a region emitting edge coordinates of the path
+        /y exch def  /x exch def
+        % dir 0:right 1:down 2:left 3:up
+        % hug 0:right 1:left
+        /dir x 1 add y 1 add mxyget def  /hug dir def
+        /sx x def  /sy y def  /sdir dir def
+        mark [x y] {
+            x 1 add y
+            x 1 add y 1 add
+            x       y 1 add
+            x       y
+            8 dir 2 mul neg roll
+            /Dy exch def  /Dx exch def  /D Dx Dy xyget def
+            /Cy exch def  /Cx exch def  /C Cx Cy xyget def
+            /By exch def  /Bx exch def  /B Bx By xyget def
+            /Ay exch def  /Ax exch def  /A Ax Ay xyget def
+            A B eq {
+                A C eq {/L} {/R} ifelse
+            } {
+                A C eq B D eq and {
+                    A 0 eq hug 0 eq xor {/R} {/F} ifelse
+                } {
+                    /F
+                } ifelse
+            } ifelse
+            dup /F eq {
+                pop
+                dir 0 eq {/x x 1 add def} if
+                dir 1 eq {/y y 1 add def} if
+                dir 2 eq {/x x 1 sub def} if
+                dir 3 eq {/y y 1 sub def} if
+                hug 0 eq {
+                    Ax Ay msetborder
+                } {
+                    Bx By msetborder
+                } ifelse
+            } {
+                /L eq {
+                    /dir dir 3 add 4 mod def
+                    hug 1 eq {
+                         Bx By msetborder
+                         Dx Dy mborderoff
+                    } if
+                } {  % R
+                    /dir dir 1 add 4 mod def
+                    hug 0 eq {
+                         Ax Ay msetborder
+                         Cx Cy mborderoff
+                    } if
+                } ifelse
+                [x y]
+            } ifelse
+            x sx eq y sy eq and dir sdir eq and {exit} if
+        } loop
+        counttomark array astore exch pop
+
+        % Invert the interior of the path
+        /x x 1 add def /y y 1 add def
+        /t x y mxyget 1 xor def
+        mark x y {
+            counttomark 0 eq {exit} if
+            /y exch def /x exch def
+            x y mxyget t ne {
+                0          x 1 sub -1 0          {dup y misborder {exch pop exit} if pop} for
+                pixx 1 sub x 1 add  1 pixx 1 sub {dup y misborder {exch pop exit} if pop} for
+                1 exch {  % From left to right border
+                    /i exch def
+                    i y misborder not {
+                        t i y mxyset
+                        i y xyinvert
+                    } if
+                    i y 1 sub mxyget t ne i y 1 sub misborder not and {i y 1 sub} if
+                    i y 1 add mxyget t ne i y 1 add misborder not and {i y 1 add} if
+                } for
+            } if
+        } loop
+        pop
+
+        % Walk the path to clear the border information
+        dup 0 get aload pop /y1 exch def /x1 exch def
+        dup dup length 1 sub 1 exch getinterval {
+            aload pop /y2 exch def /x2 exch def
+            x2 x1 gt { x1  2 x2 1 sub {y1      mclear4} for } if
+            y2 y1 gt { y1  2 y2 1 sub {x1 exch mclear4} for } if
+            x2 x1 lt { x1 -2 x2 1 add {y1      mclear4} for } if
+            y2 y1 lt { y1 -2 y2 1 add {x1 exch mclear4} for } if
+            /x1 x2 def /y1 y2 def
+        } forall
+
+        % Discard duplicate final point
+        dup length 1 sub 0 exch getinterval
+
+    } bind def
+
+    % Set RGB or CMYK color depending on length of given hex string
+    /setanycolor {
+        /anycolor exch def
+        anycolor length 6 eq {
+            (<      >) 8 string copy dup 1 anycolor putinterval cvx exec {255 div} forall setrgbcolor
+        } if
+        anycolor length 8 eq {
+            (<        >) 10 string copy dup 1 anycolor putinterval cvx exec {255 div} forall setcmykcolor
+        } if
+    } bind def
+
+    % Plot a layer of single colour
+    /drawlayer {
+
+        /pixsorig pixs def
+        /pixs exch def
+
+        % Pad the bitmap on all sides
+        /pixs [
+            pixx 2 add {0} repeat
+            0 pixx pixs length 1 sub {
+                0 exch
+                pixs exch pixx getinterval aload pop
+                0
+            } for
+            pixx 2 add {0} repeat
+        ] def
+        /pixx pixx 2 add def
+        /pixy pixy 2 add def
+
+        % Track inverted regions and working space
+        /m [ pixs length {0} repeat ] def
+
+        % Construct paths by tracing and inverting each dark region
+        /paths [
+            0 1 pixy 1 sub {
+                /j exch def
+                0 1 pixx 1 sub {
+                    /i exch def
+                    i j xyget 1 eq {
+                        i 1 sub j 1 sub trace
+                    } if
+                } for
+            } for
+        ] def
+
+        % Revert the bitmap size
+        /pixx pixx 2 sub def
+        /pixy pixy 2 sub def
+
+        % Draw the image
+        newpath
+        paths {
+            /p exch def
+            /len p length def
+            p len 1 sub get aload pop
+            p 0 get aload pop
+            0 1 len 1 sub {                                % x1 y1 x2 y2
+                /i exch def
+                p i 1 add len mod get aload pop 6 -2 roll  % x3 y3 x1 y1 x2 y2
+                5 index inkspreadh
+                4 index 4 -1 roll lt {add} {sub} ifelse    % y3<y1 ? x2+i : x2-i
+                4 1 roll
+                4 index inkspreadv
+                4 index 4 -1 roll gt {add} {sub} ifelse    % x3>x1 ? y2+i : y2-i
+                4 -1 roll exch pixy exch sub
+                i 0 eq {moveto} {lineto} ifelse
+            } for                                          % x2 y2 x3 y3
+            closepath
+            pop pop pop pop
+        } forall
+        fill
+
+        /pixs pixsorig def
+
+    } bind def
+
+    /drawlayerdots {
+
+        /pixsorig pixs def
+        /pixs exch def
+
+        newpath
+        0 1 pixs length 1 sub {
+            dup pixx mod /x exch def
+            pixx idiv /y exch def
+            x y xyget 1 eq {
+               x 0.5 add pixy y sub 0.5 sub moveto
+               x 0.5 add pixy y sub 0.5 sub 0.5 inkspread sub 0 360 arc
+            } if
+        } for
+        fill
+
+        /pixs pixsorig def
+
+    } bind def
+
+    gsave
+
+    % Draw the image
+    /inkspread  inkspread  2 div def
+    /inkspreadh inkspreadh 2 div def
+    /inkspreadv inkspreadv 2 div def
+    currentpoint translate
+    width pixx div 72 mul height pixy div 72 mul scale
+    0 0 moveto pixx 0 lineto pixx pixy lineto 0 pixy lineto closepath
+    backgroundcolor (unset) ne { gsave backgroundcolor setanycolor fill grestore } if
+
+    colormap (unset) eq {
+        /colormap << 1 barcolor >> def
+    } if
+
+    colormap {
+        setanycolor
+        /key exch def
+        [
+            pixs { key eq {1} {0} ifelse } forall
+        ] dotty {drawlayerdots} {drawlayer} ifelse
+    } forall
+
+    % Display the text for elements in the text array
+    textcolor (unset) ne { textcolor setanycolor } if
+    includetext {
+        textxalign (unset) eq textyalign (unset) eq and alttext () eq and {
+            /s 0 def /fn () def
+            txt {
+                {} forall
+                2 copy s ne exch fn ne or {
+                    2 copy /s exch def /fn exch def
+                    selectfont
+                } {
+                    pop pop
+                } ifelse
+                moveto show
+            } forall
+        } {
+            textfont textsize selectfont
+            alttext () eq {
+                /txt [ txt { 0 get {} forall } forall ] def
+                /tstr txt length string def
+                0 1 txt length 1 sub { dup txt exch get tstr 3 1 roll put } for
+            } {
+                /tstr alttext def
+            } ifelse
+
+            % Find true ascent of font
+            tstr length 0 eq {
+                0
+            } {
+                gsave
+                newpath 0 0 moveto (0) false charpath pathbbox
+                4 1 roll pop pop pop
+                grestore
+                currentfont /PaintType known {currentfont /PaintType get 2 eq} {false} ifelse
+                currentfont /StrokeWidth known and {
+                    currentfont /StrokeWidth get 2 div 0 exch
+                    currentfont /FontMatrix get dtransform
+                    dup mul exch dup mul add sqrt
+                    add
+                } if
+            } ifelse
+            /textascent exch def
+            /textwidth tstr stringwidth pop tstr length 1 sub textgaps mul add def
+
+            /textxpos textxoffset x textwidth sub 2 div add def
+            textxalign (left) eq { /textxpos textxoffset def } if
+            textxalign (right) eq { /textxpos x textxoffset sub textwidth sub def } if
+            textxalign (offleft) eq { /textxpos textwidth textxoffset add neg def } if
+            textxalign (offright) eq { /textxpos x textxoffset add def } if
+            textxalign (justify) eq textwidth x lt and {
+                /textxpos 0 def
+                /textgaps x textwidth sub tstr length 1 sub div def
+            } if
+            /textypos textyoffset textascent add 1 add neg def
+            textyalign (above) eq { /textypos textyoffset pixy add 1 add def } if
+            textyalign (center) eq { /textypos textyoffset pixy textascent sub 2 div add def } if
+            textxpos textypos moveto textgaps 0 tstr ashow
+        } ifelse
+    } if
+
+    grestore
+
+    end
+
+} bind def
+/renmatrix dup load /uk.co.terryburton.bwipp defineresource pop
+end
+/setpacking where {pop setpacking} if
+%%EndData
+%%EndResource
+
+/setpacking where {pop currentpacking true setpacking} if
+1 dict
+dup /raiseerror dup /uk.co.terryburton.bwipp findresource put
+dup /renmatrix dup /uk.co.terryburton.bwipp findresource put
+begin
+/jabcode {
+
+    20 dict begin
+
+    /options exch def
+    /barcode exch def
+
+    /dontdraw false def
+%    /format (unset) def    % full, compact or rune
+%    /readerinit false def
+%    /layers -1 def
+%    /eclevel 23 def
+%    /ecaddchars 3 def
+    /raw false def
+    /parse false def
+
+    % Parse the input options
+    options type /stringtype eq {
+        1 dict begin
+        options {
+            token false eq {exit} if dup length string cvs (=) search
+            true eq {cvlit exch pop exch def} {cvlit true def} ifelse
+        } loop
+        currentdict end /options exch def
+    } if
+    options {def} forall
+
+%    /layers layers cvi def
+%    /eclevel eclevel cvr def
+%    /ecaddchars ecaddchars cvi def
+
+    % Parse ordinals of the form ^NNN to ASCII
+    parse {
+        /msg barcode length string def
+        /j 0 def
+        barcode
+        { % loop
+            (^) search {
+                dup msg exch j exch putinterval
+                length j add 1 add /j exch def
+                pop
+                dup 0 3 getinterval cvi msg exch j 1 sub exch put
+                dup length 3 sub 3 exch getinterval
+            } {
+                dup msg exch j exch putinterval
+                length j add /j exch def
+                /barcode msg 0 j getinterval def
+                exit
+            } ifelse
+        } loop
+    } if
+
+%     % Convert from input into message bitstream
+%     /msgbits () def
+%     raw not {  % TODO
+% 
+%         % State key: "U"pper, "L"ower, "M"ixed, "P"unctuation, "D"igit, "B"inary
+%         /U 0 def  /L 1 def  /M 2 def  /P 3 def  /D 4 def  /B 5 def
+%         
+%         % Special function characters
+%         /lu -1 def  /ll -2 def  /lm -3 def
+%         /lp -4 def  /ld -5 def  /su -6 def
+%         /sp -7 def  /sb -8 def  /fl -9 def
+%         /p2 -10 def /p3 -11 def /p4 -12 def /p5 -13 def
+%         
+%         % Character maps for each state
+%         /charmaps [
+%             %  U    L    M    P    D
+%             [  sp   sp   sp   fl   sp ]  % 0
+%             [  32   32   32   13   32 ]  % 1
+%             [ (A)  (a)    1   p2  (0) ]  % 2     p2 = CR LF
+%             [ (B)  (b)    2   p3  (1) ]  % 3     p3 = ". "
+%             [ (C)  (c)    3   p4  (2) ]  % 4     p4 = ", "
+%             [ (D)  (d)    4   p5  (3) ]  % 5     p5 = ": "
+%             [ (E)  (e)    5  (!)  (4) ]  % 6
+%             [ (F)  (f)    6  (")  (5) ]  % 7
+%             [ (G)  (g)    7  (#)  (6) ]  % 8
+%             [ (H)  (h)    8  ($)  (7) ]  % 9
+%             [ (I)  (i)    9  (%)  (8) ]  % 10
+%             [ (J)  (j)   10  (&)  (9) ]  % 11
+%             [ (K)  (k)   11  (')  (,) ]  % 12
+%             [ (L)  (l)   12   40  (.) ]  % 13
+%             [ (M)  (m)   13   41   lu ]  % 14
+%             [ (N)  (n)   27  (*)   su ]  % 15
+%             [ (O)  (o)   28  (+)  -99 ]  % 16
+%             [ (P)  (p)   29  (,)  -99 ]  % 17
+%             [ (Q)  (q)   30  (-)  -99 ]  % 18
+%             [ (R)  (r)   31  (.)  -99 ]  % 19
+%             [ (S)  (s)  (@)  (/)  -99 ]  % 20
+%             [ (T)  (t)   92  (:)  -99 ]  % 21
+%             [ (U)  (u)  (^)  (;)  -99 ]  % 22
+%             [ (V)  (v)  (_)  (<)  -99 ]  % 23
+%             [ (W)  (w)  (`)  (=)  -99 ]  % 24
+%             [ (X)  (x)  (|)  (>)  -99 ]  % 25
+%             [ (Y)  (y)  (~)  (?)  -99 ]  % 26
+%             [ (Z)  (z)  127  ([)  -99 ]  % 27
+%             [  ll   su   ll  (])  -99 ]  % 28
+%             [  lm   lm   lu  ({)  -99 ]  % 29
+%             [  ld   ld   lp  (})  -99 ]  % 30
+%             [  sb   sb   sb   lu  -99 ]  % 31
+%         ] def 
+%         
+%         % Invert charmaps to give character to value maps for each state
+%         /charvals [ 32 dict 32 dict 32 dict 32 dict 16 dict ] def
+%         0 1 charmaps length 1 sub {
+%             /i exch def
+%             /encs charmaps i get def
+%             0 1 4 {
+%                 /j exch def
+%                 encs j get dup type /stringtype eq {0 get} if  % convert string to ASCII if required
+%                 charvals j get exch i put 
+%             } for
+%         } for
+%         
+%         % Punctuation compression
+%         /pcomp <<
+%             <0d0a> p2   % CR LF
+%             (. )   p3
+%             (, )   p4
+%             (: )   p5
+%         >> def
+%         
+%         /e 10000 def  % "Empty"
+%         
+%         /latlen [  % Bit length of latch between states
+%         % To:  U  L  M  P  D  B      From
+%             [  0  5  5 10  5 10 ]  % U
+%             [  9  0  5 10  5 10 ]  % L
+%             [  5  5  0  5 10 10 ]  % M
+%             [  5 10 10  0 10 15 ]  % P
+%             [  4  9  9 14  0 14 ]  % D
+%             [  0  0  0  0  0  0 ]  % B
+%         ] def
+% 
+%         /latseq [  % Latch sequences between states
+%         % To: U       L       M       P          D       B          From
+%             [ []      [ll]    [lm]    [lm lp]    [ld]    [sb]    ]  % U
+%             [ [ld lu] []      [lm]    [lm lp]    [ld]    [sb]    ]  % L
+%             [ [lu]    [ll]    []      [lp]       [lu ld] [sb]    ]  % M
+%             [ [lu]    [lu ll] [lu lm] []         [lu ld] [lu sb] ]  % P
+%             [ [lu]    [lu ll] [lu lm] [lu lm lp] []      [lu sb] ]  % D
+%             [ [lu]    [ll]    [lm]    []         []      []      ]  % B
+%         ] def
+% 
+%         /shftlen [  % Bit length of shift to state
+%         % To:  U  L  M  P  D      From
+%             [  e  e  e  5  e ]  % U
+%             [  5  e  e  5  e ]  % L
+%             [  e  e  e  5  e ]  % M
+%             [  e  e  e  e  e ]  % P
+%             [  4  e  e  4  e ]  % D
+%         ] def
+%         
+%         %            U   L   M   P   D   B
+%         /charsize [  5   5   5   5   4   8 ] def
+%         
+%         %          U  L  M  P  D  B
+%         /curlen [  0  e  e  e  e  e ] def
+%         /curseq [ [] [] [] [] [] [] ] def
+%         
+%         /backto U def  % U
+%         /lastchar () def
+%         
+%         % Derive the optimal sequences ending in each state
+%         barcode {
+%         
+%             /char exch def
+%           
+%             % Check for optimisations in the current sequences by latching from x to y
+%             {  % loop
+%                 /imp false def
+%                 [ U L M P D B ] {
+%                     /x exch def
+%                     [ U L M P D B ] {
+%                         /y exch def
+%                         x B ne y backto eq or {  % Only B -> backto
+%                             /cost curlen x get latlen x get y get add def
+%                             cost curlen y get lt {
+%                                 curlen y cost put
+%                                 curseq y [
+%                                     curseq x get aload pop
+%                                     latseq x get y get aload pop
+%                                 ] put
+%                                 y B eq {  % Set backto to previous state
+%                                     /backto x P eq x D eq or {U} {x} ifelse def
+%                                 } if
+%                                 /imp true def
+%                             } if
+%                         } if
+%                     } forall
+%                 } forall
+%                 imp not {exit} if  % Repeat unless no improvement
+%             } loop
+% 
+%             % Determine optimal next sequences for each valid encoding 
+%             /nxtlen [ e e e e e e ] def 
+%             /nxtseq 6 array def
+%           
+%             [ U L M P D B ] {
+%                 /x exch def
+%             
+%                 { % loop for common exit
+%             
+%                     % Skip states that cannot encode character
+%                     x B ne {charvals x get char known not {exit} if} if
+%               
+%                     % Extend directly
+%                     /cost curlen x get charsize x get add def
+%                     cost nxtlen x get lt {
+%                         nxtlen x cost put
+%                         nxtseq x [ curseq x get aload pop char ] put
+%                     } if
+%               
+%                     % Optimise for direct shifts from y to x 
+%                     x B eq {exit} if  % B is treated as a latch
+%                     [ U L M P D ] {
+%                         /y exch def
+%                         x y ne {
+%                             /cost curlen y get shftlen y get x get add charsize x get add def
+%                             cost nxtlen y get lt {
+%                                 nxtlen y cost put
+%                                 nxtseq y [
+%                                     curseq y get aload pop
+%                                     x U eq {su} {sp} ifelse
+%                                     char
+%                                 ] put
+%                             } if
+%                         } if
+%                     } forall
+%               
+%                     exit
+%                 } loop
+%             
+%             } forall
+%           
+%             % Optimise using P compression
+%             lastchar () ne {
+%                 /pchars 2 string dup 0 lastchar put dup 1 char put def
+%                 pcomp pchars known {
+%                     curlen P get nxtlen P get lt {
+%                         nxtlen P curlen P get put
+%                         nxtseq P [ curseq P get aload pop pop pcomp pchars get ] put
+%                     } if
+%                 } if
+%             } if 
+%           
+%             % Account for binary extension for 32 or more bytes
+%             /numbytes 0 def
+%             nxtseq B get {
+%                 sb eq {0} {numbytes 1 add} ifelse /numbytes exch def
+%             } forall
+%             numbytes 32 eq {nxtlen B nxtlen B get 11 add put} if
+%           
+%             /curlen nxtlen def
+%             /curseq nxtseq def
+%             /lastchar char def
+%           
+%         } forall
+%         
+%         % Select the optimal sequence
+%         /minseq e def
+%         [ U L M P D B ] {
+%             /i exch def
+%             curlen i get minseq lt {
+%                 /minseq curlen i get def
+%                 /seq curseq i get def
+%             } if
+%         } forall
+%         
+%         % Encoding functions
+%         /tobin {
+%             string dup length 1 sub 0 exch 1 exch {1 index exch 48 put} for
+%             dup 3 -1 roll 2 2 index length string cvrs dup length 2 index length exch sub exch putinterval 
+%         } bind def
+%         /encu {charvals U get exch get 5 tobin} bind def
+%         /encl {charvals L get exch get 5 tobin} bind def
+%         /encm {charvals M get exch get 5 tobin} bind def
+%         /encp {charvals P get exch get 5 tobin} bind def
+%         /encd {charvals D get exch get 4 tobin} bind def
+%         /encfuncs [ /encu /encl /encm /encp /encd ] def
+%         /addtomsgbits {
+%             /v exch def
+%             msgbits j v putinterval
+%             /j j v length add def
+%         } bind def
+%         
+%         % Encode the sequence
+%         /state U def
+%         /msgbits minseq string def
+%         /i 0 def /j 0 def {
+%             i seq length ge {exit} if
+%           
+%             state B ne {
+%           
+%                 /char seq i get def
+%             
+%                 % Encode character
+%                 char encfuncs state get load exec addtomsgbits
+%                 /i i 1 add def
+%             
+%                 % Encode shifted next character
+%                 char su eq char sp eq or {
+%                     seq i get char su eq {encu} {encp} ifelse addtomsgbits
+%                     /i i 1 add def
+%                 } if
+%             
+%                 % Latches to new state
+%                 char lu eq {/state U def} if
+%                 char ll eq {/state L def} if
+%                 char lm eq {/state M def} if
+%                 char lp eq {/state P def} if
+%                 char ld eq {/state D def} if
+%                 char sb eq {/state B def} if
+%             
+%             } {  % Binary
+%           
+%                 % Find number of bytes before latch or end
+%                 /numbytes 0 def {
+%                     i numbytes add seq length ge {exit} if
+%                     seq i numbytes add get 0 lt {exit} if 
+%                     /numbytes numbytes 1 add def
+%                 } loop
+%             
+%                 % Encode length
+%                 numbytes 31 le {
+%                     numbytes 5 tobin addtomsgbits
+%                 } {
+%                     0 5 tobin addtomsgbits
+%                     numbytes 31 sub 11 tobin addtomsgbits
+%                 } ifelse
+%             
+%                 % Encode bytes
+%                 numbytes {
+%                     seq i get 8 tobin addtomsgbits 
+%                     /i i 1 add def
+%                 } repeat
+%             
+%                 % Return to previous state as indicated
+%                 i seq length lt {
+%                     /char seq i get def
+%                     /i i 1 add def
+%                     char lu eq {/state U def} if
+%                     char ll eq {/state L def} if
+%                     char lm eq {/state M def} if
+%                 } if
+%             
+%             } ifelse
+%           
+%         } loop
+% 
+%     } if
+% 
+%     % Lookup the most appropriate symbol specification
+%     /metrics [
+%         [ (rune)     0 0    0  6 ]  % Special metric for rune symbols
+%         [ (compact)  1 1   17  6 ] [ (full)     1 1   21  6 ] [ (compact)  2 0   40  6 ]
+%         [ (full)     2 1   48  6 ] [ (compact)  3 0   51  8 ] [ (full)     3 1   60  8 ]
+%         [ (compact)  4 0   76  8 ] [ (full)     4 1   88  8 ] [ (full)     5 1  120  8 ]
+%         [ (full)     6 1  156  8 ] [ (full)     7 1  196  8 ] [ (full)     8 1  240  8 ]
+%         [ (full)     9 1  230 10 ] [ (full)    10 1  272 10 ] [ (full)    11 1  316 10 ]
+%         [ (full)    12 1  364 10 ] [ (full)    13 1  416 10 ] [ (full)    14 1  470 10 ]
+%         [ (full)    15 1  528 10 ] [ (full)    16 1  588 10 ] [ (full)    17 1  652 10 ]
+%         [ (full)    18 1  720 10 ] [ (full)    19 1  790 10 ] [ (full)    20 1  864 10 ]
+%         [ (full)    21 1  940 10 ] [ (full)    22 1 1020 10 ] [ (full)    23 0  920 12 ]
+%         [ (full)    24 0  992 12 ] [ (full)    25 0 1066 12 ] [ (full)    26 0 1144 12 ]
+%         [ (full)    27 0 1224 12 ] [ (full)    28 0 1306 12 ] [ (full)    29 0 1392 12 ]
+%         [ (full)    30 0 1480 12 ] [ (full)    31 0 1570 12 ] [ (full)    32 0 1664 12 ]
+%     ] def
+% 
+%     /i 0 def
+%     { % loop
+%         /m metrics i get def
+%         /frmt m 0 get def                          % Format of the symbol
+%         /mlyr m 1 get def                          % Data layers
+%         /icap m 2 get def                          % Reader initialisation capable
+%         /ncws m 3 get def                          % Total of codewords
+%         /bpcw m 4 get def                          % Bits per codeword
+%         /numecw ncws eclevel mul 100 div ecaddchars add ceiling cvi def
+%         msgbits length 0 eq {/numecw 0 def} if     % Error correction codewords 
+%         /numdcw ncws numecw sub def                % Data codewords
+%         /okay true def
+%         format (unset) ne format frmt ne and {/okay false def} if
+%         readerinit icap 1 ne and {/okay false def} if
+%         layers -1 ne layers mlyr ne and {/okay false def} if 
+%         msgbits length bpcw div ceiling cvi numdcw gt {/okay false def} if
+%         okay {exit} if
+%         /i i 1 add def
+%     } loop
+%     /layers mlyr def
+%     /format frmt def
+% 
+%     % Expand message bits into codewords avoiding codewords with all zeros or all ones
+%     /allzero {dup length (000000000000) 0 3 -1 roll getinterval eq} bind def
+%     /allones {dup length (111111111111) 0 3 -1 roll getinterval eq} bind def
+%     /cws ncws array def
+%     /m 0 def /c 0 def
+%     {
+%         msgbits length m le {exit} if
+%         msgbits length m sub bpcw ge {
+%             /cwb msgbits m bpcw 1 sub getinterval def        % All but last bit
+%             /cwf msgbits m bpcw add 1 sub 1 getinterval def  % Last bit
+%             cwb allzero {/cwf (1) def /m m 1 sub def} if     % Flip last bit to avoid zeros
+%             cwb allones {/cwf (0) def /m m 1 sub def} if     % Flip last bit to avoid ones
+%             % Concatinate the bits 
+%             12 string dup 0 cwb putinterval 
+%             dup bpcw 1 sub cwf putinterval
+%             0 bpcw getinterval
+%             /cwb exch def
+%         } {  %  Final codeword
+%             /cwb msgbits m msgbits length m sub getinterval def
+%             /cwb (111111111111) 12 string copy dup 0 cwb putinterval 0 bpcw getinterval def
+%             cwb allones {cwb cwb length 1 sub (0) putinterval} if  % Prevent all ones
+%         } ifelse
+%         % Conversion of binary data into byte array
+%         /cw 0 def
+%         0 1 bpcw 1 sub {
+%             /i exch def
+%             /cw cw 2 bpcw i sub 1 sub exp cvi cwb i get 48 sub mul add def
+%         } for
+%         cws c cw put
+%         /m m bpcw add def 
+%         /c c 1 add def
+%     } loop    
+%     /cws cws 0 c getinterval def
+% 
+%     % Reed-Solomon algorithm
+%     /rscodes {
+% 
+%         /rspm exch def
+%         /rsgf exch def
+%         /rsnc exch def
+%         /rscws exch def
+% 
+%         % Calculate the log and anti-log tables
+%         /rsalog [ 1 rsgf 1 sub { dup 2 mul dup rsgf ge {rspm xor} if } repeat ] def
+%         /rslog rsgf array def
+%         1 1 rsgf 1 sub {dup rsalog exch get exch rslog 3 1 roll put} for
+% 
+%         % Function to calculate the product in the field
+%         /rsprod {
+%             2 copy 0 ne exch 0 ne and {
+%                 rslog exch get exch rslog exch get add rsgf 1 sub mod rsalog exch get
+%             } {
+%                 pop pop 0
+%             } ifelse
+%         } bind def
+% 
+%         % Generate the coefficients
+%         /coeffs [ 1 rsnc {0} repeat ] def
+%         1 1 rsnc {
+%             /i exch def 
+%             coeffs i coeffs i 1 sub get put
+%             i 1 sub -1 1 {
+%                 /j exch def
+%                 coeffs j coeffs j 1 sub get coeffs j get rsalog i get rsprod xor put
+%             } for 
+%             coeffs 0 coeffs 0 get rsalog i get rsprod put
+%         } for
+% 
+%         % Extend the input with the error correction values
+%         /nd rscws length def
+%         /rscws [ rscws {} forall rsnc {0} repeat 0 ] def
+%         0 1 nd 1 sub {
+%             /k exch rscws exch get rscws nd get xor def 
+%             0 1 rsnc 1 sub {
+%                 /j exch def 
+%                 rscws nd j add rscws nd j add 1 add get k coeffs rsnc j sub 1 sub get rsprod xor put
+%             } for 
+%         } for
+% 
+%         % Return all but the last codeword
+%         rscws 0 rscws length 1 sub getinterval
+% 
+%     } bind def
+% 
+%     % Create the codewords and bit string for the mode
+%     format (full) eq {
+%         /mode layers 1 sub 11 bitshift cws length 1 sub add def
+%         readerinit {/mode mode 2#0000010000000000 or def} if
+%         /mode [
+%             mode 2#1111000000000000 and -12 bitshift
+%             mode 2#0000111100000000 and -8 bitshift
+%             mode 2#0000000011110000 and -4 bitshift
+%             mode 2#0000000000001111 and
+%         ] def
+%         /mode mode 6 16 19 rscodes def 
+%     } if
+%     format (compact) eq {
+%         /mode layers 1 sub 6 bitshift cws length 1 sub add def
+%         readerinit {/mode mode 2#00100000 or def} if 
+%         /mode [
+%             mode 2#11110000 and -4 bitshift
+%             mode 2#00001111 and
+%         ] def
+%         /mode mode 5 16 19 rscodes def
+%     } if
+%     format (rune) eq {
+%         /mode barcode cvi def
+%         /mode [
+%             mode 2#11110000 and -4 bitshift
+%             mode 2#00001111 and
+%         ] def
+%         /mode mode 5 16 19 rscodes def
+%         /mode [mode {2#1010 xor} forall] def  % Invert alternate bits
+%     } if
+%     /modebits mode length 4 mul string def
+%     0 1 modebits length 1 sub {modebits exch (0) putinterval} for
+%     0 1 mode length 1 sub {
+%         /i exch def
+%         modebits mode i get 2 4 string cvrs dup length 4 exch sub 4 i mul add exch putinterval 
+%     } for
+% 
+
+% TODO Dummy
+/rows 145 def
+/cols 145 def
+/symtype (master) def
+
+    % Create the pixel map
+    /pixs [rows cols mul {-1} repeat] def
+    /jmv {cols mul add} bind def
+
+    % Finder patterns
+    symtype (master) eq {
+        /fpat [
+            [ 1 1 1 0 0 ]
+            [ 1 2 2 0 0 ]
+            [ 1 2 1 2 1 ]
+            [ 0 0 2 2 1 ]
+            [ 0 0 1 1 1 ]
+        ] def
+        /fmap [
+            [ -1 2 3 ]  % UL
+            [ -1 3 2 ]  % LL
+            [ -1 4 5 ]  % UR
+            [ -1 5 4 ]  % LR
+        ] def
+    } {  % Slave alignment pattern
+        /fpat [
+            [ 0 0 0 0 0 ]
+            [ 0 2 2 0 0 ]
+            [ 0 2 1 2 0 ]
+            [ 0 0 2 2 0 ]
+            [ 0 0 0 0 0 ]
+        ] def
+        /fmap [
+            [ -1 1 0 ]  % UL
+            [ -1 1 0 ]  % LL
+            [ -1 1 0 ]  % UR
+            [ -1 1 0 ]  % LR
+        ] def
+    } ifelse
+    0 1 4 {
+      /y exch def
+      0 1 4 {
+        /x exch def
+        /fpb fpat y get x get def
+        pixs x 1 add y 1 add                     jmv fmap 0 get fpb get put
+        pixs x 1 add           rows y sub 2 sub  jmv fmap 1 get fpb get put
+        pixs x cols add 6 sub  y 1 add           jmv fmap 2 get fpb get put
+        pixs x cols add 6 sub  rows y sub 2 sub  jmv fmap 3 get fpb get put
+      } for
+    } for
+
+    % Alignment patterns
+    /algnpat0 [
+        [  1  1 -1 ]
+        [  1  0  1 ]
+        [ -1  1  1 ]
+    ] def
+    /algnpat1 [
+        [ -1  1  1 ]
+        [  1  0  1 ]
+        [  1  1 -1 ]
+    ] def
+    /num cols 16 div round cvi 1 sub def
+    /algnrpos [] def
+    num 1 gt {
+        /algnrpos [ 0 1 num {cols 7 sub num div mul cvi 3 add} for ] def
+    } if
+    /num rows 16 div round cvi 1 sub def
+    /algncpos [] def
+    num 1 gt {
+        /algncpos [ 0 1 num {rows 7 sub num div mul cvi 3 add} for ] def
+    } if
+    /putalgnpat {
+        /pp exch def
+        /py exch def
+        /px exch def
+        0 1 2 {
+            /pb exch def
+            0 1 2 {
+                /pa exch def
+                pixs px pa add py pb add jmv pp pb get pa get put
+            } for
+        } for
+    } bind def
+    0 1 algncpos length 1 sub {
+        /j exch def
+        /y algncpos j get def
+        0 1 algnrpos length 1 sub {
+            /i exch def
+            /x algnrpos i get def
+            pixs x y jmv get -1 eq {
+                x 1 sub y 1 sub i j add 2 mod 0 eq {algnpat0} {algnpat1} ifelse putalgnpat
+            } if
+        } for
+    } for
+
+
+    <<
+    /ren //renmatrix
+    /pixs pixs
+    /pixx cols
+    /pixy rows
+    /colormap <<  % TODO Seperate static vs dynamic colour ranges
+        0 (00000000)  % Black
+        1 (000000FF)  % White
+        2 (FFFF0000)  % Blue
+        3 (0000FF00)  % Yellow
+        4 (00FFFF00)  % Green
+        5 (00FF0000)  % Magenta
+    >>
+    /height rows 2 mul 72 div
+    /width  cols 2 mul 72 div
+    /opt options
+    >>
+
+    dontdraw not //renmatrix if
+
+    end
+
+} bind def
+/jabcode dup load /uk.co.terryburton.bwipp defineresource pop
+end
+/setpacking where {pop setpacking} if
+
+1.5 dup scale
+
+25 25 moveto (JAB Code) (inkspread=0.1) /jabcode /uk.co.terryburton.bwipp findresource exec
+
+showpage
+
