@@ -897,6 +897,67 @@ begin
 %         rscws 0 rscws length 1 sub getinterval
 % 
 %     } bind def
+
+
+% /lcg64_temper {
+% 
+%     % Multiply seed by 6364136223846793005 then add 1
+% 
+%     /p00 m0 s0 mul def  /p01 m0 s1 mul def  /p02 m0 s2 mul def  /p03 m0 s3 mul def
+%     /p10 m1 s0 mul def  /p11 m1 s1 mul def  /p12 m1 s2 mul def  /p13 m1 s3 mul def
+%     /p20 m2 s0 mul def  /p21 m2 s1 mul def  /p22 m2 s2 mul def  /p23 m2 s3 mul def
+%     /p30 m3 s0 mul def  /p31 m3 s1 mul def  /p32 m3 s2 mul def  /p33 m3 s3 mul def
+% 
+%     /s3 p33 16#10000 mod                     1 add def  % 1 added here
+%     /s2 p32 16#10000 mod p33 16#10000 idiv add
+%         p23 16#10000 mod                       add def
+%     /s1 p31 16#10000 mod p32 16#10000 idiv add
+%         p22 16#10000 mod p23 16#10000 idiv add add
+%         p13 16#10000 mod                       add def
+%     /s0 p30 16#10000 mod p31 16#10000 idiv add
+%         p21 16#10000 mod p22 16#10000 idiv add add
+%         p12 16#10000 mod p13 16#10000 idiv add add
+%         p03 16#10000 mod                       add def
+% 
+%     % Simplify carry by making each digit positive by borrowing from more significant digit
+%     /s3 s3 16#10000 add def
+%     /s2 s2 16#ffff  add def
+%     /s1 s1 16#ffff  add def
+%     /s0 s0 16#ffff  add def
+% 
+%     % Carry
+%     /s2 s3 16#10000 idiv s2 add def  /s3 s3 16#10000 mod def
+%     /s1 s2 16#10000 idiv s1 add def  /s2 s2 16#10000 mod def
+%     /s0 s1 16#10000 idiv s0 add def  /s1 s1 16#10000 mod def
+%                                      /s0 s0 16#10000 mod def
+% 
+%     % Temper most significant 32 bits
+%     s0 16#8000 sub 16#10000 mul s1 add 16#80000000 xor
+%     16#ffffffff and
+%     dup -11 bitshift xor
+%     dup   7 bitshift 16#62d3a980 neg and xor  % 0x9D2C5680 - 0x100000000
+%     dup  15 bitshift 16#103a0000 neg and xor  % 0xEFC60000 - 0x100000000
+%     16#ffffffff and
+%     dup -18 bitshift xor
+% 
+% } bind def
+% 
+% % Avoid 15-bit overflow when multiplying the digits by stealing from the second digit
+% % m = 6364136223846793005 = 0x 5851 f42d 4c95 7f2d
+% % s = 226759              = 0x 0000 0000 0003 75C7
+% 
+% /m0 16#5851 16#1 add def  /m1 16#f42d 16#10000 sub def  /m2 16#4c95 def  /m3 16#7f2d def
+% /s0 16#0000 def           /s1 16#0000 def               /s2 16#0003 def  /s3 16#75C7 def
+% 
+% /maxrand 50000 def
+% {
+%     lcg64_temper
+%     dup 0 lt {16#80000000 xor 2147483648.0 add} if
+%     4294967296.0 div maxrand mul cvi  % (float)UINT32_MAX = 65536.0 * 65536
+%     ==
+% } loop
+
+
 % 
 %     % Create the codewords and bit string for the mode
 %     format (full) eq {
