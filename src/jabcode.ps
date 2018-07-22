@@ -1007,6 +1007,7 @@ colors 4 eq {
         bi (0000FF)  gi (00FF00)  mi (FF00FF)  yi (FFFF00)
         ki (000000)  wi (FFFFFF)
     >> def
+    /palettelayout [bi gi mi yi] def
 } {
     /rgbres <<
           % r g b   Graduations
@@ -1023,7 +1024,8 @@ colors 4 eq {
     /bvals rgbres 2 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
 
     /palette colors dict def
-    /i 0 def
+    /palettelayout colors array def
+    /i 0 def  /j 8 def
     rvals {
         /r exch def
         gvals {
@@ -1032,19 +1034,27 @@ colors 4 eq {
                 /b exch def
                 r 16 bitshift g 8 bitshift or b or
                 (000000) 6 string copy dup 3 -1 roll 16 6 string cvrs dup length 6 exch sub exch putinterval
-                dup (000000) eq {/ki i def} if
-                dup (FFFFFF) eq {/wi i def} if
-                dup (0000FF) eq {/bi i def} if
-                dup (FFFF00) eq {/yi i def} if
-                dup (00FF00) eq {/gi i def} if
-                dup (FF00FF) eq {/mi i def} if
+                false
+                1 index (000000) eq {/ki i def  pop true} if
+                1 index (0000FF) eq {/bi i def  pop true} if
+                1 index (00FF00) eq {/gi i def  pop true} if
+                1 index (00FFFF) eq {/ci i def  pop true} if
+                1 index (FF0000) eq {/ri i def  pop true} if
+                1 index (FF00FF) eq {/mi i def  pop true} if
+                1 index (FFFF00) eq {/yi i def  pop true} if
+                1 index (FFFFFF) eq {/wi i def  pop true} if
+                not {  % Vertex in RGB space
+                    palettelayout j i put
+                    /j j 1 add def
+                } if
                 palette exch i exch put
                 /i i 1 add def
             } forall
         } forall
     } forall
-} ifelse
+    palettelayout 0 [ki bi gi ci ri mi yi wi] putinterval
 
+} ifelse
 
 % TODO Dummy
 /rows 145 def
