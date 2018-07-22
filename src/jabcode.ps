@@ -997,9 +997,58 @@ begin
 %     } for
 % 
 
+/colors 16 def  % TODO dummy
+
+% Define the color palette
+colors 4 eq {
+    /bi 0 def  /yi 3 def  /gi 1 def  /mi 2 def
+    /ki 4 def  /wi 5 def  % Extended
+    /palette <<
+        bi (0000FF)  gi (00FF00)  mi (FF00FF)  yi (FFFF00)
+        ki (000000)  wi (FFFFFF)
+    >> def
+} {
+    /rgbres <<
+          % r g b   Graduations
+       8  [ 2 2 2 ]
+      16  [ 4 2 2 ]
+      32  [ 4 4 2 ]
+      64  [ 4 4 4 ]
+     128  [ 8 4 4 ]
+     256  [ 8 8 4 ]
+    >> colors get def
+
+    /rvals rgbres 0 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
+    /gvals rgbres 1 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
+    /bvals rgbres 2 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
+
+    /palette colors dict def
+    /i 0 def
+    rvals {
+        /r exch def
+        gvals {
+            /g exch def
+            bvals {
+                /b exch def
+                r 16 bitshift g 8 bitshift or b or
+                (000000) 6 string copy dup 3 -1 roll 16 6 string cvrs dup length 6 exch sub exch putinterval
+                dup (000000) eq {/ki i def} if
+                dup (FFFFFF) eq {/wi i def} if
+                dup (0000FF) eq {/bi i def} if
+                dup (FFFF00) eq {/yi i def} if
+                dup (00FF00) eq {/gi i def} if
+                dup (FF00FF) eq {/mi i def} if
+                palette exch i exch put
+                /i i 1 add def
+            } forall
+        } forall
+    } forall
+} ifelse
+
+
 % TODO Dummy
 /rows 145 def
-/cols 145 def
+/cols 21 def
 /symtype (master) def
 
     % Create the pixel map
@@ -1016,10 +1065,10 @@ begin
             [ 0 0 1 1 1 ]
         ] def
         /fmap [
-            [ -1 2 3 ]  % UL
-            [ -1 3 2 ]  % LL
-            [ -1 4 5 ]  % UR
-            [ -1 5 4 ]  % LR
+            [ -1 bi yi ]  % UL
+            [ -1 yi bi ]  % LL
+            [ -1 gi mi ]  % UR
+            [ -1 mi gi ]  % LR
         ] def
     } {  % Slave alignment pattern
         /fpat [
@@ -1030,10 +1079,10 @@ begin
             [ 0 0 0 0 0 ]
         ] def
         /fmap [
-            [ -1 1 0 ]  % UL
-            [ -1 1 0 ]  % LL
-            [ -1 1 0 ]  % UR
-            [ -1 1 0 ]  % LR
+            [ -1 ki wi ]  % UL
+            [ -1 ki wi ]  % LL
+            [ -1 ki wi ]  % UR
+            [ -1 ki wi ]  % LR
         ] def
     } ifelse
     0 1 4 {
@@ -1050,23 +1099,23 @@ begin
 
     % Alignment patterns
     /algnpat0 [
-        [  1  1 -1 ]
-        [  1  0  1 ]
-        [ -1  1  1 ]
+        [ ki ki -1 ]
+        [ ki wi ki ]
+        [ -1 ki ki ]
     ] def
     /algnpat1 [
-        [ -1  1  1 ]
-        [  1  0  1 ]
-        [  1  1 -1 ]
+        [ -1 ki ki ]
+        [ ki wi ki ]
+        [ ki ki -1 ]
     ] def
     /num cols 16 div round cvi 1 sub def
-    /algnrpos [] def
-    num 1 gt {
+    /algnrpos [ 3 17 ] def
+    num 0 gt {
         /algnrpos [ 0 1 num {cols 7 sub num div mul cvi 3 add} for ] def
     } if
     /num rows 16 div round cvi 1 sub def
-    /algncpos [] def
-    num 1 gt {
+    /algncpos [ 3 17 ] def
+    num 0 gt {
         /algncpos [ 0 1 num {rows 7 sub num div mul cvi 3 add} for ] def
     } if
     /putalgnpat {
@@ -1093,20 +1142,12 @@ begin
         } for
     } for
 
-
     <<
     /ren //renmatrix
     /pixs pixs
     /pixx cols
     /pixy rows
-    /colormap <<  % TODO Seperate static vs dynamic colour ranges
-        0 (00000000)  % Black
-        1 (000000FF)  % White
-        2 (FFFF0000)  % Blue
-        3 (0000FF00)  % Yellow
-        4 (00FFFF00)  % Green
-        5 (00FF0000)  % Magenta
-    >>
+    /colormap palette
     /height rows 2 mul 72 div
     /width  cols 2 mul 72 div
     /opt options
