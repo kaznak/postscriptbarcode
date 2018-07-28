@@ -431,11 +431,7 @@ begin
     /barcode exch def
 
     /dontdraw false def
-%    /format (unset) def    % full, compact or rune
-%    /readerinit false def
-%    /layers -1 def
-%    /eclevel 23 def
-%    /ecaddchars 3 def
+    /eclevel 6 def  % 0-10
     /raw false def
     /parse false def
 
@@ -450,9 +446,7 @@ begin
     } if
     options {def} forall
 
-%    /layers layers cvi def
-%    /eclevel eclevel cvr def
-%    /ecaddchars ecaddchars cvi def
+    /eclevel eclevel cvi def
 
     % Parse ordinals of the form ^NNN to ASCII
     parse {
@@ -813,191 +807,175 @@ begin
 %     } loop
 %     /layers mlyr def
 %     /format frmt def
-% 
-%     % Expand message bits into codewords avoiding codewords with all zeros or all ones
-%     /allzero {dup length (000000000000) 0 3 -1 roll getinterval eq} bind def
-%     /allones {dup length (111111111111) 0 3 -1 roll getinterval eq} bind def
-%     /cws ncws array def
-%     /m 0 def /c 0 def
-%     {
-%         msgbits length m le {exit} if
-%         msgbits length m sub bpcw ge {
-%             /cwb msgbits m bpcw 1 sub getinterval def        % All but last bit
-%             /cwf msgbits m bpcw add 1 sub 1 getinterval def  % Last bit
-%             cwb allzero {/cwf (1) def /m m 1 sub def} if     % Flip last bit to avoid zeros
-%             cwb allones {/cwf (0) def /m m 1 sub def} if     % Flip last bit to avoid ones
-%             % Concatinate the bits 
-%             12 string dup 0 cwb putinterval 
-%             dup bpcw 1 sub cwf putinterval
-%             0 bpcw getinterval
-%             /cwb exch def
-%         } {  %  Final codeword
-%             /cwb msgbits m msgbits length m sub getinterval def
-%             /cwb (111111111111) 12 string copy dup 0 cwb putinterval 0 bpcw getinterval def
-%             cwb allones {cwb cwb length 1 sub (0) putinterval} if  % Prevent all ones
-%         } ifelse
-%         % Conversion of binary data into byte array
-%         /cw 0 def
-%         0 1 bpcw 1 sub {
-%             /i exch def
-%             /cw cw 2 bpcw i sub 1 sub exp cvi cwb i get 48 sub mul add def
-%         } for
-%         cws c cw put
-%         /m m bpcw add def 
-%         /c c 1 add def
-%     } loop    
-%     /cws cws 0 c getinterval def
-% 
-%     % Reed-Solomon algorithm
-%     /rscodes {
-% 
-%         /rspm exch def
-%         /rsgf exch def
-%         /rsnc exch def
-%         /rscws exch def
-% 
-%         % Calculate the log and anti-log tables
-%         /rsalog [ 1 rsgf 1 sub { dup 2 mul dup rsgf ge {rspm xor} if } repeat ] def
-%         /rslog rsgf array def
-%         1 1 rsgf 1 sub {dup rsalog exch get exch rslog 3 1 roll put} for
-% 
-%         % Function to calculate the product in the field
-%         /rsprod {
-%             2 copy 0 ne exch 0 ne and {
-%                 rslog exch get exch rslog exch get add rsgf 1 sub mod rsalog exch get
-%             } {
-%                 pop pop 0
-%             } ifelse
-%         } bind def
-% 
-%         % Generate the coefficients
-%         /coeffs [ 1 rsnc {0} repeat ] def
-%         1 1 rsnc {
-%             /i exch def 
-%             coeffs i coeffs i 1 sub get put
-%             i 1 sub -1 1 {
-%                 /j exch def
-%                 coeffs j coeffs j 1 sub get coeffs j get rsalog i get rsprod xor put
-%             } for 
-%             coeffs 0 coeffs 0 get rsalog i get rsprod put
-%         } for
-% 
-%         % Extend the input with the error correction values
-%         /nd rscws length def
-%         /rscws [ rscws {} forall rsnc {0} repeat 0 ] def
-%         0 1 nd 1 sub {
-%             /k exch rscws exch get rscws nd get xor def 
-%             0 1 rsnc 1 sub {
-%                 /j exch def 
-%                 rscws nd j add rscws nd j add 1 add get k coeffs rsnc j sub 1 sub get rsprod xor put
-%             } for 
-%         } for
-% 
-%         % Return all but the last codeword
-%         rscws 0 rscws length 1 sub getinterval
-% 
-%     } bind def
 
 
-% /lcg64_temper {
-% 
-%     % Multiply seed by 6364136223846793005 then add 1
-% 
-%     /p00 m0 s0 mul def  /p01 m0 s1 mul def  /p02 m0 s2 mul def  /p03 m0 s3 mul def
-%     /p10 m1 s0 mul def  /p11 m1 s1 mul def  /p12 m1 s2 mul def  /p13 m1 s3 mul def
-%     /p20 m2 s0 mul def  /p21 m2 s1 mul def  /p22 m2 s2 mul def  /p23 m2 s3 mul def
-%     /p30 m3 s0 mul def  /p31 m3 s1 mul def  /p32 m3 s2 mul def  /p33 m3 s3 mul def
-% 
-%     /s3 p33 16#10000 mod                     1 add def  % 1 added here
-%     /s2 p32 16#10000 mod p33 16#10000 idiv add
-%         p23 16#10000 mod                       add def
-%     /s1 p31 16#10000 mod p32 16#10000 idiv add
-%         p22 16#10000 mod p23 16#10000 idiv add add
-%         p13 16#10000 mod                       add def
-%     /s0 p30 16#10000 mod p31 16#10000 idiv add
-%         p21 16#10000 mod p22 16#10000 idiv add add
-%         p12 16#10000 mod p13 16#10000 idiv add add
-%         p03 16#10000 mod                       add def
-% 
-%     % Simplify carry by making each digit positive by borrowing from more significant digit
-%     /s3 s3 16#10000 add def
-%     /s2 s2 16#ffff  add def
-%     /s1 s1 16#ffff  add def
-%     /s0 s0 16#ffff  add def
-% 
-%     % Carry
-%     /s2 s3 16#10000 idiv s2 add def  /s3 s3 16#10000 mod def
-%     /s1 s2 16#10000 idiv s1 add def  /s2 s2 16#10000 mod def
-%     /s0 s1 16#10000 idiv s0 add def  /s1 s1 16#10000 mod def
-%                                      /s0 s0 16#10000 mod def
-% 
-%     % Temper most significant 32 bits
-%     s0 16#8000 sub 16#10000 mul s1 add 16#80000000 xor
-%     16#ffffffff and
-%     dup -11 bitshift xor
-%     dup   7 bitshift 16#62d3a980 neg and xor  % 0x9D2C5680 - 0x100000000
-%     dup  15 bitshift 16#103a0000 neg and xor  % 0xEFC60000 - 0x100000000
-%     16#ffffffff and
-%     dup -18 bitshift xor
-% 
-% } bind def
-% 
-% % Avoid 15-bit overflow when multiplying the digits by stealing from the second digit
-% % m = 6364136223846793005 = 0x 5851 f42d 4c95 7f2d
-% % s = 226759              = 0x 0000 0000 0003 75C7
-% 
-% /m0 16#5851 16#1 add def  /m1 16#f42d 16#10000 sub def  /m2 16#4c95 def  /m3 16#7f2d def
-% /s0 16#0000 def           /s1 16#0000 def               /s2 16#0003 def  /s3 16#75C7 def
-% 
-% /maxrand 50000 def
-% {
-%     lcg64_temper
-%     dup 0 lt {16#80000000 xor 2147483648.0 add} if
-%     4294967296.0 div maxrand mul cvi  % (float)UINT32_MAX = 65536.0 * 65536
-%     ==
-% } loop
+% Avoid 15-bit overflow when multiplying the digits by stealing from the second digit
+% m = 6364136223846793005 = 0x 5851 f42d 4c95 7f2d
+/m0 16#5851 16#1 add def  /m1 16#f42d 16#10000 sub def  /m2 16#4c95 def  /m3 16#7f2d def
+
+/lcg64_temper {
+
+    % Multiply seed by 6364136223846793005 then add 1
+
+    /p00 m0 s0 mul def  /p01 m0 s1 mul def  /p02 m0 s2 mul def  /p03 m0 s3 mul def
+    /p10 m1 s0 mul def  /p11 m1 s1 mul def  /p12 m1 s2 mul def  /p13 m1 s3 mul def
+    /p20 m2 s0 mul def  /p21 m2 s1 mul def  /p22 m2 s2 mul def  /p23 m2 s3 mul def
+    /p30 m3 s0 mul def  /p31 m3 s1 mul def  /p32 m3 s2 mul def  /p33 m3 s3 mul def
+
+    /s3 p33 16#10000 mod                     1 add def  % 1 added here
+    /s2 p32 16#10000 mod p33 16#10000 idiv add
+        p23 16#10000 mod                       add def
+    /s1 p31 16#10000 mod p32 16#10000 idiv add
+        p22 16#10000 mod p23 16#10000 idiv add add
+        p13 16#10000 mod                       add def
+    /s0 p30 16#10000 mod p31 16#10000 idiv add
+        p21 16#10000 mod p22 16#10000 idiv add add
+        p12 16#10000 mod p13 16#10000 idiv add add
+        p03 16#10000 mod                       add def
+
+    % Simplify carry by making each digit positive by borrowing from more significant digit
+    /s3 s3 16#10000 add def
+    /s2 s2 16#ffff  add def
+    /s1 s1 16#ffff  add def
+    /s0 s0 16#ffff  add def
+
+    % Carry
+    /s2 s3 16#10000 idiv s2 add def  /s3 s3 16#10000 mod def
+    /s1 s2 16#10000 idiv s1 add def  /s2 s2 16#10000 mod def
+    /s0 s1 16#10000 idiv s0 add def  /s1 s1 16#10000 mod def
+                                     /s0 s0 16#10000 mod def
+
+    % Temper most significant 32 bits
+    s0 16#8000 sub 16#10000 mul s1 add 16#80000000 xor
+    16#ffffffff and
+    dup -11 bitshift xor
+    dup   7 bitshift 16#62d3a980 neg and xor  % 0x9D2C5680 - 0x100000000
+    dup  15 bitshift 16#103a0000 neg and xor  % 0xEFC60000 - 0x100000000
+    16#ffffffff and
+    dup -18 bitshift xor
+
+} bind def
+
+/addtobits {
+    dup bits j 3 -1 roll putinterval
+    length j add /j exch def
+} bind def
+
+/addtometabits {
+    dup metabits j 3 -1 roll putinterval
+    length j add /j exch def
+} bind def
+
+/c 179 def % TODO capacity
+/bits c string def  % TODO set max
+/j 0 def
+[
+  (01010) (00001) (00010) (00000) (00011) (11100) (01111) (00100)
+  (00101) (11101) (0000) (0011) (0001) (0010) (0101) (1101) (0000)
+] {addtobits} forall
+
+% TODO LDPC, optimised based on capacity, not input length
+/wc [ 3 3 4 4 3 4 4 3 4 5 7 ] eclevel get def
+/wr [ 9 8 9 8 6 7 6 4 5 6 8 ] eclevel get def
+
+/r 1 wc wr div sub def
+/k j wc mul wr idiv def   % TODO Use capacity to dynamically find wc and wr, not j
+
+/ldpcout k string def
+0 1 ldpcout length 1 sub {ldpcout exch 50 put} for
+bits j ldpcout putinterval
+/j j k add def
+
+% Add padding bits
+c j sub 1 add 2 idiv {
+    bits j 48 put
+    j 1 add c lt {bits j 1 add 49 put} if
+    /j j 2 add def
+} repeat
+
+% Interleave via pseudorandom permutation
+% TODO check
+/s0 16#0000 def  /s1 16#0000 def  /s2 16#0003 def  /s3 16#75C7 def  % s=226759
+c 1 sub -1 1 {
+    /l exch def
+    lcg64_temper
+    dup 0 lt {16#80000000 xor 2147483648.0 add} if
+    4294967296.0 div l 1 add mul cvi  % (float)UINT32_MAX = 65536.0 * 65536
+    /r exch def
+    bits l get bits r get
+    bits exch l exch put
+    bits exch r exch put
+} for
+
+% TODO Dummy
+/colors 16 def
+/symtype (master) def
+/rows 145 def
+/cols 141 def
+/mask 2 def
+/hasslaves false def
+
+/metabits 42 string def
+/j 0 def
+symtype (master) eq {
+
+    <<
+         4 (001)    8 (010)   16 (011)  32 (100)
+        64 (101)  128 (110)  256 (111)
+    >> colors get addtometabits                                  % Nc
+
+    /ss rows cols eq {(0)} {(1)} ifelse def
+    ss addtometabits                                             % SS
+
+    rows cols 2 copy lt {exch} if pop  % Max size
+    21 sub 16 idiv
+    [ (00) (01) (10) (10) (11) (11) (11) (11) ] exch get
+    /vf exch def
+    vf addtometabits                                             % VF
+
+    [ (000) (001) (010) (011) (100) (101) (110) (111) ]
+    mask get addtometabits                                       % MSK
+
+    % TODO
+    hasslaves {(1)} {(0)} ifelse addtometabits                   % SF
+
+    /vlen <<
+        ss (0) eq { (00) 2  (01) 2  (10) 3  (11)  4 } if
+        ss (1) eq { (00) 4  (01) 6  (10) 8  (11) 10 } if
+    >> vf get def
+
+    ss (0) eq {  % Square
+        << (00) 0  (01) 4  (10) 8  (11) 16 >> vf get
+        cols 17 sub 4 idiv exch sub 1 sub
+        (0000) 4 string copy dup 3 -1 roll 2 4 string cvrs
+        dup length 4 exch sub exch putinterval
+        4 vlen sub vlen getinterval addtometabits                % V
+    } {  % Rectangular
+        cols 17 sub 4 idiv 1 sub
+        (00000) 5 string copy dup 3 -1 roll 2 5 string cvrs
+        dup length 5 exch sub exch putinterval
+        5 vlen 2 idiv sub vlen 2 idiv getinterval addtometabits  % V
+        rows 17 sub 4 idiv 1 sub
+        (00000) 5 string copy dup 3 -1 roll 2 5 string cvrs
+        dup length 5 exch sub exch putinterval
+        5 vlen 2 idiv sub vlen 2 idiv getinterval addtometabits  % V
+    } ifelse
+
+    % TODO
+    /elen << (00) 10 (01) 12 (10) 14 (11) 16 >> vf get def
+
+    % TODO
+    hasslaves {
+        (0000) addtometabits
+    } if
+
+} {
 
 
-% 
-%     % Create the codewords and bit string for the mode
-%     format (full) eq {
-%         /mode layers 1 sub 11 bitshift cws length 1 sub add def
-%         readerinit {/mode mode 2#0000010000000000 or def} if
-%         /mode [
-%             mode 2#1111000000000000 and -12 bitshift
-%             mode 2#0000111100000000 and -8 bitshift
-%             mode 2#0000000011110000 and -4 bitshift
-%             mode 2#0000000000001111 and
-%         ] def
-%         /mode mode 6 16 19 rscodes def 
-%     } if
-%     format (compact) eq {
-%         /mode layers 1 sub 6 bitshift cws length 1 sub add def
-%         readerinit {/mode mode 2#00100000 or def} if 
-%         /mode [
-%             mode 2#11110000 and -4 bitshift
-%             mode 2#00001111 and
-%         ] def
-%         /mode mode 5 16 19 rscodes def
-%     } if
-%     format (rune) eq {
-%         /mode barcode cvi def
-%         /mode [
-%             mode 2#11110000 and -4 bitshift
-%             mode 2#00001111 and
-%         ] def
-%         /mode mode 5 16 19 rscodes def
-%         /mode [mode {2#1010 xor} forall] def  % Invert alternate bits
-%     } if
-%     /modebits mode length 4 mul string def
-%     0 1 modebits length 1 sub {modebits exch (0) putinterval} for
-%     0 1 mode length 1 sub {
-%         /i exch def
-%         modebits mode i get 2 4 string cvrs dup length 4 exch sub 4 i mul add exch putinterval 
-%     } for
-% 
+} ifelse
+/metabits metabits 0 j getinterval def
+metabits == asfd
 
-/colors 16 def  % TODO dummy
 
 % Define the color palette
 colors 4 eq {
@@ -1055,11 +1033,6 @@ colors 4 eq {
     palettelayout 0 [ki bi gi ci ri mi yi wi] putinterval
 
 } ifelse
-
-% TODO Dummy
-/rows 145 def
-/cols 21 def
-/symtype (master) def
 
     % Create the pixel map
     /pixs [rows cols mul {-1} repeat] def
@@ -1155,7 +1128,7 @@ colors 4 eq {
     symtype (master) eq {
 
         /palettemap1 [
-            [  4  2 ] [  4  3 ] [  5  2 ] [  5  3 ] [  2  4 ] [  2  5 ] [  1  4 ] [  1  5 ]  %  0-7
+            [  4  1 ] [  4  2 ] [  5  1 ] [  5  2 ] [  2  4 ] [  2  5 ] [  1  4 ] [  1  5 ]  %  0-7
             [ -2  1 ] [ -2  2 ] [ -1  1 ] [ -1  2 ] [ -4  4 ] [ -4  5 ] [ -5  4 ] [ -5  5 ]  %  8-15
             [  4  7 ] [ -4  7 ] [  3  7 ] [ -3  7 ] [  2  7 ] [ -2  7 ] [  1  7 ] [ -1  7 ]  % 16-23
             [  8  1 ] [ -8  1 ] [  8  2 ] [ -8  2 ] [  8  3 ] [ -8  3 ] [  8  4 ] [ -8  4 ]  % 24-31
@@ -1172,8 +1145,8 @@ colors 4 eq {
         ] def
 
         [  % Expanded to [ x y ] [ x -y ] [ -x -y ] [ x -y ]
-            [ 6 1 ] [ 6 2 ] [ 6 3 ] [ 6 4 ] [ 6 5 ] [ 6 6 ] [ 5 6 ] [ 4 6 ] [ 3 6 ] [ 2 6 ]
-            [ 1 6 ] [ 7 1 ] [ 7 2 ] [ 7 3 ] [ 7 4 ] [ 7 5 ] [ 7 6 ] [ 7 7 ] [ 6 7 ] [ 5 7 ]
+            [ 6 1 ] [ 6 2 ] [ 6 3 ] [ 6 4 ] [ 6 5 ] [ 6 6 ] [ 5 6 ] [ 4 6 ] [ 3 6 ] [ 2 6 ]  %  0-39
+            [ 1 6 ] [ 7 1 ] [ 7 2 ] [ 7 3 ] [ 7 4 ] [ 7 5 ] [ 7 6 ] [ 7 7 ] [ 6 7 ] [ 5 7 ]  % 40-79
         ] {
             aload pop /y exch def /x exch def
             [ x y ] [ x neg y ] [ x neg y neg ] [ x y neg ]
@@ -1208,6 +1181,23 @@ colors 4 eq {
 
     } ifelse
 
+    /cws [5000 {255} repeat] def  % TODO dummy
+
+    % Walk the symbol placing the bitstream
+    /posx 0 def
+    /posy 0 def
+    /num 0 def
+    { % loop
+        posx cols eq {exit} if
+        pixs posx posy jmv get -1 eq {
+            cws num 8 idiv get 7 num 8 mod sub neg bitshift 1 and
+            pixs posx posy jmv 3 -1 roll put
+            /num num 1 add def
+        } if
+        /posy posy 1 add def
+        posy rows eq {/posy 0 def /posx posx 1 add def} if
+    } loop
+
     <<
     /ren //renmatrix
     /pixs pixs
@@ -1228,7 +1218,7 @@ colors 4 eq {
 end
 /setpacking where {pop setpacking} if
 
-1.5 dup scale
+3.5 dup scale
 
 25 25 moveto (JAB Code) (inkspread=0.1) /jabcode /uk.co.terryburton.bwipp findresource exec
 
