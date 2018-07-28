@@ -856,6 +856,12 @@ begin
 
 } bind def
 
+/tofixedbits {  % Zero padded base 2 string
+    (00000000) 8 string copy dup 4 -1 roll 2 8 string cvrs
+    dup length 4 index exch sub exch putinterval
+    0 3 -1 roll getinterval
+} bind def
+
 /addtobits {
     dup bits j 3 -1 roll putinterval
     length j add /j exch def
@@ -919,54 +925,39 @@ c 1 sub -1 1 {
 /j 0 def
 symtype (master) eq {
 
-    <<
-         4 (001)    8 (010)   16 (011)  32 (100)
-        64 (101)  128 (110)  256 (111)
-    >> colors get addtometabits                                  % Nc
+    colors ln 2 ln div round cvi 1 sub
+    3 tofixedbits addtometabits                                 % Nc
 
-    /ss rows cols eq {(0)} {(1)} ifelse def
-    ss addtometabits                                             % SS
+    /ss rows cols eq {0} {1} ifelse def
+    ss 1 tofixedbits addtometabits                              % SS
 
     rows cols 2 copy lt {exch} if pop  % Max size
-    21 sub 16 idiv
-    [ (00) (01) (10) (10) (11) (11) (11) (11) ] exch get
-    /vf exch def
-    vf addtometabits                                             % VF
+    21 sub 16 idiv [ 0 1 2 2 3 3 3 3 ] exch get  /vf exch def
+    vf 2 tofixedbits addtometabits                              % VF
 
-    [ (000) (001) (010) (011) (100) (101) (110) (111) ]
-    mask get addtometabits                                       % MSK
+    mask 3 tofixedbits addtometabits                            % MSK
 
-    % TODO
-    hasslaves {(1)} {(0)} ifelse addtometabits                   % SF
+    hasslaves {(1)} {(0)} ifelse addtometabits                  % SF
 
-    /vlen <<
-        ss (0) eq { (00) 2  (01) 2  (10) 3  (11)  4 } if
-        ss (1) eq { (00) 4  (01) 6  (10) 8  (11) 10 } if
-    >> vf get def
+    /vlen ss 0 eq {[2 2 3 4]} {[4 6 8 10]} ifelse vf get def
 
-    ss (0) eq {  % Square
-        << (00) 0  (01) 4  (10) 8  (11) 16 >> vf get
-        cols 17 sub 4 idiv exch sub 1 sub
-        (0000) 4 string copy dup 3 -1 roll 2 4 string cvrs
-        dup length 4 exch sub exch putinterval
-        4 vlen sub vlen getinterval addtometabits                % V
+    ss 0 eq {  % Square
+        cols 17 sub 4 idiv [ 0 4 8 16 ] vf get sub 1 sub
+        vlen tofixedbits addtometabits                          % V
     } {  % Rectangular
         cols 17 sub 4 idiv 1 sub
-        (00000) 5 string copy dup 3 -1 roll 2 5 string cvrs
-        dup length 5 exch sub exch putinterval
-        5 vlen 2 idiv sub vlen 2 idiv getinterval addtometabits  % V
+        vlen 2 idiv tofixedbits addtometabits                   % V1
         rows 17 sub 4 idiv 1 sub
-        (00000) 5 string copy dup 3 -1 roll 2 5 string cvrs
-        dup length 5 exch sub exch putinterval
-        5 vlen 2 idiv sub vlen 2 idiv getinterval addtometabits  % V
+        vlen 2 idiv tofixedbits addtometabits                   % V2
     } ifelse
 
-    % TODO
-    /elen << (00) 10 (01) 12 (10) 14 (11) 16 >> vf get def
+    /elen vf 2 mul 10 add def
+    wc 3 sub elen 2 idiv tofixedbits addtometabits              % E1
+    wr 4 sub elen 2 idiv tofixedbits addtometabits              % E2
 
     % TODO
     hasslaves {
-        (0000) addtometabits
+        0 4 tofixedbits addtometabits                           % S
     } if
 
 } {
