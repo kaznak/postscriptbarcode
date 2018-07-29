@@ -915,19 +915,25 @@ c 1 sub -1 1 {
 
 % TODO Dummy
 /colors 16 def
-/symtype (master) def
+%/symtype (master) def
+/symtype (slave) def
 /rows 145 def
 /cols 141 def
+/diffside 21 def
 /mask 2 def
+/sameshape false def
+/sameecc false def
 /hasslaves false def
 
 /metabits 42 string def
 /j 0 def
 symtype (master) eq {
 
+    % Part I
     colors ln 2 ln div round cvi 1 sub
     3 tofixedbits addtometabits                                 % Nc
 
+    % Part II
     /ss rows cols eq {0} {1} ifelse def
     ss 1 tofixedbits addtometabits                              % SS
 
@@ -939,6 +945,7 @@ symtype (master) eq {
 
     hasslaves {(1)} {(0)} ifelse addtometabits                  % SF
 
+    % Part III
     /vlen ss 0 eq {[2 2 3 4]} {[4 6 8 10]} ifelse vf get def
 
     ss 0 eq {  % Square
@@ -955,13 +962,37 @@ symtype (master) eq {
     wc 3 sub elen 2 idiv tofixedbits addtometabits              % E1
     wr 4 sub elen 2 idiv tofixedbits addtometabits              % E2
 
-    % TODO
-    hasslaves {
+    % TODO slave positions
+    hasslaves {  % Top, right, bottom, left
         0 4 tofixedbits addtometabits                           % S
     } if
 
-} {
+} {  % slave
 
+    % Part I
+    sameshape {0} {1} ifelse 1 tofixedbits addtometabits        % SS
+    sameecc   {0} {1} ifelse 1 tofixedbits addtometabits        % SE
+    hasslaves {1} {0} ifelse 1 tofixedbits addtometabits        % SF
+
+    % Part II
+    sameshape not {
+        diffside 17 sub 4 idiv 1 sub
+        5 tofixedbits addtometabits                             % V
+    } if
+
+    % TODO slave positions
+    hasslaves {  % Top, right, bottom, left, skipping host
+        0 3 tofixedbits addtometabits                           % S
+    } if
+
+    % Part III
+    sameecc not {
+        rows cols 2 copy lt {exch} if pop  % Max size
+        21 sub 16 idiv [ 10 12 14 14 16 16 16 16 ] exch get
+        /elen exch def
+        wc 3 sub elen 2 idiv tofixedbits addtometabits          % E1
+        wr 4 sub elen 2 idiv tofixedbits addtometabits          % E2
+    } if
 
 } ifelse
 /metabits metabits 0 j getinterval def
