@@ -434,6 +434,7 @@ begin
     /eclevel 6 def  % 0-10
     /raw false def
     /parse false def
+    /parsefnc false def
 
     % Parse the input options
     options type /stringtype eq {
@@ -468,6 +469,58 @@ begin
             } ifelse
         } loop
     } if
+
+    /barlen barcode length def
+
+    % Convert input into bytes accounting for FNC characters
+    /fn1 -1 def
+    /fncvals <<
+% TODO
+%       (FNC1) fn1
+    >> def
+    /msg barlen array def
+    /i 0 def /j 0 def {
+        i barlen eq {exit} if
+        /char barcode i get def
+        parsefnc char 94 eq and i barlen 4 sub lt and {
+            barcode i 1 add get 94 ne {
+                /char fncvals barcode i 1 add 4 getinterval get def
+                /i i 4 add def
+            } {
+                /i i 1 add def
+            } ifelse
+        } if
+        msg j char put
+        /i i 1 add def
+        /j j 1 add def
+    } loop
+    /msg msg 0 j getinterval def
+    /msglen msg length def
+
+    /addtobits {
+        dup bits j 3 -1 roll putinterval
+        length j add /j exch def
+    } bind def
+
+    /tofixedbits {  % Zero padded base 2 string
+        (0000000000000) 13 string copy dup 4 -1 roll 2 13 string cvrs
+        dup length 4 index exch sub exch putinterval
+        0 3 -1 roll getinterval
+    } bind def
+
+    % Encode the data using byte mode encoding
+    /bits 7 msglen 15 le {4} {17} ifelse add msglen 8 mul add string def
+    /j 0 def
+    (1111100) addtobits
+    msglen 15 le {
+        msglen 4 tofixedbits addtobits
+    } {
+        (0000) addtobits
+        msglen 15 sub 13 tofixedbits addtobits
+    } ifelse
+    0 1 msglen 1 sub {
+        msg exch get 8 tofixedbits addtobits
+    } for
 
 %     % Convert from input into message bitstream
 %     /msgbits () def
@@ -856,17 +909,6 @@ begin
 
 } bind def
 
-/tofixedbits {  % Zero padded base 2 string
-    (00000000) 8 string copy dup 4 -1 roll 2 8 string cvrs
-    dup length 4 index exch sub exch putinterval
-    0 3 -1 roll getinterval
-} bind def
-
-/addtobits {
-    dup bits j 3 -1 roll putinterval
-    length j add /j exch def
-} bind def
-
 /addtometabits {
     dup metabits j 3 -1 roll putinterval
     length j add /j exch def
@@ -888,7 +930,7 @@ begin
 /k j wc mul wr idiv def   % TODO Use capacity to dynamically find wc and wr, not j
 
 /ldpcout k string def
-0 1 ldpcout length 1 sub {ldpcout exch 50 put} for
+0 1 ldpcout length 1 sub {ldpcout exch 48 put} for
 bits j ldpcout putinterval
 /j j k add def
 
@@ -1219,29 +1261,36 @@ colors 4 eq {
         } forall
         /i i 6 add def
     } if
-%    {  % Take metabpm and encode
-%        % TODO suffix zeros to pad
-%        pixs metadatamap j get aload pop jmv 3 -1 roll put
-%        /i i metabpm add def
-%        /j j 1 add def
+    /rembits metabpm metabits length i sub metabpm mod sub metabpm mod def
+    rembits 0 ne {  % Extend remainder with zeros to multiple of metabpm
+        metabits length rembits add string
+        dup dup length 7 sub (0000000) putinterval
+        dup 0 metabits putinterval
+        /metabits exch def
+    } if
+    metabits length i sub metabpm idiv {
+        metabits i metabpm getinterval 0 exch {48 sub add 2 mul} forall 2 idiv
+        pixs metadatamap j get aload pop jmv 3 -1 roll put
+        /i i metabpm add def
+        /j j 1 add def
+    } repeat
+
+% TODO take copies of occupied blocks for the masking
+
+%    % Walk the symbol placing the bitstream
+%    /databpm colors ln 2 ln div round cvi def
+%    /posx 0 def  /posy 0 def
+%    /i 0 def
+%    { % loop
+%        posx cols eq {exit} if
+%        pixs posx posy jmv get -1 eq {
+%            bits i databpm getinterval 0 exch {48 sub add 2 mul} forall 2 idiv
+%            pixs posx posy jmv 3 -1 roll put
+%            /i i databpm add def
+%        } if
+%        /posy posy 1 add def
+%        posy rows eq {/posy 0 def /posx posx 1 add def} if
 %    } loop
-
-    /cws [5000 {255} repeat] def  % TODO dummy
-
-    % Walk the symbol placing the bitstream
-    /posx 0 def
-    /posy 0 def
-    /num 0 def
-    { % loop
-        posx cols eq {exit} if
-        pixs posx posy jmv get -1 eq {
-            cws num 8 idiv get 7 num 8 mod sub neg bitshift 1 and
-            pixs posx posy jmv 3 -1 roll put
-            /num num 1 add def
-        } if
-        /posy posy 1 add def
-        posy rows eq {/posy 0 def /posx posx 1 add def} if
-    } loop
 
     <<
     /ren //renmatrix
