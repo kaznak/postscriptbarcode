@@ -913,41 +913,43 @@ c 1 sub -1 1 {
     bits exch r exch put
 } for
 
+/ldpcdummy {
+  % noop
+} bind def
+
 % TODO Dummy
 /colors 16 def
-%/symtype (master) def
-/symtype (slave) def
-/rows 145 def
-/cols 141 def
+/symtype (master) def
+%/symtype (slave) def
+/rows 25 def
+/cols 25 def
 /diffside 21 def
 /mask 2 def
 /sameshape false def
 /sameecc false def
 /hasslaves false def
 
-/metabits 42 string def
-/j 0 def
+/metabits 80 string def
+/i 0 def  /j 0 def
 symtype (master) eq {
 
     % Part I
     colors ln 2 ln div round cvi 1 sub
     3 tofixedbits addtometabits                                 % Nc
+    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
 
     % Part II
     /ss rows cols eq {0} {1} ifelse def
     ss 1 tofixedbits addtometabits                              % SS
-
     rows cols 2 copy lt {exch} if pop  % Max size
     21 sub 16 idiv [ 0 1 2 2 3 3 3 3 ] exch get  /vf exch def
     vf 2 tofixedbits addtometabits                              % VF
-
     mask 3 tofixedbits addtometabits                            % MSK
-
     hasslaves {(1)} {(0)} ifelse addtometabits                  % SF
+    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
 
     % Part III
     /vlen ss 0 eq {[2 2 3 4]} {[4 6 8 10]} ifelse vf get def
-
     ss 0 eq {  % Square
         cols 17 sub 4 idiv [ 0 4 8 16 ] vf get sub 1 sub
         vlen tofixedbits addtometabits                          % V
@@ -957,15 +959,13 @@ symtype (master) eq {
         rows 17 sub 4 idiv 1 sub
         vlen 2 idiv tofixedbits addtometabits                   % V2
     } ifelse
-
     /elen vf 2 mul 10 add def
     wc 3 sub elen 2 idiv tofixedbits addtometabits              % E1
     wr 4 sub elen 2 idiv tofixedbits addtometabits              % E2
-
-    % TODO slave positions
     hasslaves {  % Top, right, bottom, left
         0 4 tofixedbits addtometabits                           % S
     } if
+    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
 
 } {  % slave
 
@@ -973,17 +973,17 @@ symtype (master) eq {
     sameshape {0} {1} ifelse 1 tofixedbits addtometabits        % SS
     sameecc   {0} {1} ifelse 1 tofixedbits addtometabits        % SE
     hasslaves {1} {0} ifelse 1 tofixedbits addtometabits        % SF
+    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
 
     % Part II
     sameshape not {
         diffside 17 sub 4 idiv 1 sub
         5 tofixedbits addtometabits                             % V
     } if
-
-    % TODO slave positions
     hasslaves {  % Top, right, bottom, left, skipping host
         0 3 tofixedbits addtometabits                           % S
     } if
+    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
 
     % Part III
     sameecc not {
@@ -993,11 +993,10 @@ symtype (master) eq {
         wc 3 sub elen 2 idiv tofixedbits addtometabits          % E1
         wr 4 sub elen 2 idiv tofixedbits addtometabits          % E2
     } if
+    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
 
 } ifelse
 /metabits metabits 0 j getinterval def
-metabits == asfd
-
 
 % Define the color palette
 colors 4 eq {
@@ -1149,6 +1148,15 @@ colors 4 eq {
 
     symtype (master) eq {
 
+        [  % Expanded to [ x y ] [ x -y ] [ -x -y ] [ x -y ]
+            [ 6 1 ] [ 6 2 ] [ 6 3 ] [ 6 4 ] [ 6 5 ] [ 6 6 ] [ 5 6 ] [ 4 6 ] [ 3 6 ] [ 2 6 ]  %  0-39
+            [ 1 6 ] [ 7 1 ] [ 7 2 ] [ 7 3 ] [ 7 4 ] [ 7 5 ] [ 7 6 ] [ 7 7 ] [ 6 7 ] [ 5 7 ]  % 40-79
+        ] {
+            aload pop /y exch def /x exch def
+            [ x y ] [ x neg y ] [ x neg y neg ] [ x y neg ]
+        } forall
+        80 array astore /metadatamap exch def
+
         /palettemap1 [
             [  4  1 ] [  4  2 ] [  5  1 ] [  5  2 ] [  2  4 ] [  2  5 ] [  1  4 ] [  1  5 ]  %  0-7
             [ -2  1 ] [ -2  2 ] [ -1  1 ] [ -1  2 ] [ -4  4 ] [ -4  5 ] [ -5  4 ] [ -5  5 ]  %  8-15
@@ -1166,29 +1174,9 @@ colors 4 eq {
             palettemap1 16 48 getinterval {[ exch aload pop neg exch neg exch]} forall       % 16-63
         ] def
 
-        [  % Expanded to [ x y ] [ x -y ] [ -x -y ] [ x -y ]
-            [ 6 1 ] [ 6 2 ] [ 6 3 ] [ 6 4 ] [ 6 5 ] [ 6 6 ] [ 5 6 ] [ 4 6 ] [ 3 6 ] [ 2 6 ]  %  0-39
-            [ 1 6 ] [ 7 1 ] [ 7 2 ] [ 7 3 ] [ 7 4 ] [ 7 5 ] [ 7 6 ] [ 7 7 ] [ 6 7 ] [ 5 7 ]  % 40-79
-        ] {
-            aload pop /y exch def /x exch def
-            [ x y ] [ x neg y ] [ x neg y neg ] [ x y neg ]
-        } forall
-        80 array astore /metadatamap exch def
-
     } {  % Slave
 
         % TODO Split of palette map
-
-        /palettemap1 [
-             5  1 12 { [ exch 4 exch ] } for
-            12 -1  5 { [ exch 5 exch ] } for
-             5  1 12 { [ exch 6 exch ] } for
-            12 -1  5 { [ exch 7 exch ] } for
-        ] def
-
-        /palettemap2 [
-            palettemap1 {[ exch aload pop neg exch neg exch]} forall
-        ] def
 
         /metadatamap [
             1 1 19 {
@@ -1201,7 +1189,42 @@ colors 4 eq {
             } for
         ] def
 
+        /palettemap1 [
+             5  1 12 { [ exch 4 exch ] } for
+            12 -1  5 { [ exch 5 exch ] } for
+             5  1 12 { [ exch 6 exch ] } for
+            12 -1  5 { [ exch 7 exch ] } for
+        ] def
+
+        /palettemap2 [
+            palettemap1 {[ exch aload pop neg exch neg exch]} forall
+        ] def
+
     } ifelse
+    metadatamap {  % Normalise wrapping
+        dup 0 get dup 0 lt {cols add 1 sub 1 index 0 3 -1 roll put} {pop} ifelse
+        dup 1 get dup 0 lt {rows add 1 sub 1 index 1 3 -1 roll put} {pop} ifelse
+        pop
+    } forall
+
+    % Place the metadata
+    /metacolors colors dup 8 gt {pop 8} if def
+    /metabpm metacolors ln 2 ln div round cvi def
+    /i 0 def /j 0 def
+    symtype (master) eq {  % Two-color encoding of Part I (Nc)
+        metabits i 6 getinterval {
+            metacolors 4 eq {[bi yi]} {[ki wi]} ifelse exch 48 sub get
+            pixs metadatamap j get aload pop jmv 3 -1 roll put
+            /j j 1 add def
+        } forall
+        /i i 6 add def
+    } if
+%    {  % Take metabpm and encode
+%        % TODO suffix zeros to pad
+%        pixs metadatamap j get aload pop jmv 3 -1 roll put
+%        /i i metabpm add def
+%        /j j 1 add def
+%    } loop
 
     /cws [5000 {255} repeat] def  % TODO dummy
 
