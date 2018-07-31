@@ -431,10 +431,16 @@ begin
     /barcode exch def
 
     /dontdraw false def
+    /rows -1 def
+    /columns -1 def
+    /ratio -1 def
+    /symtype (master) def
+    /colors 16 def
     /eclevel 6 def  % 0-10
     /raw false def
     /parse false def
     /parsefnc false def
+    /mask -1 def
 
     % Parse the input options
     options type /stringtype eq {
@@ -447,7 +453,12 @@ begin
     } if
     options {def} forall
 
+    /rows rows cvi def
+    /columns columns cvi def
+    /ratio ratio cvr def
+    /colors colors cvi def
     /eclevel eclevel cvi def
+    /mask mask cvi def
 
     % Parse ordinals of the form ^NNN to ASCII
     parse {
@@ -821,106 +832,122 @@ begin
 %         } loop
 % 
 %     } if
-% 
-%     % Lookup the most appropriate symbol specification
-%     /metrics [
-%         [ (rune)     0 0    0  6 ]  % Special metric for rune symbols
-%         [ (compact)  1 1   17  6 ] [ (full)     1 1   21  6 ] [ (compact)  2 0   40  6 ]
-%         [ (full)     2 1   48  6 ] [ (compact)  3 0   51  8 ] [ (full)     3 1   60  8 ]
-%         [ (compact)  4 0   76  8 ] [ (full)     4 1   88  8 ] [ (full)     5 1  120  8 ]
-%         [ (full)     6 1  156  8 ] [ (full)     7 1  196  8 ] [ (full)     8 1  240  8 ]
-%         [ (full)     9 1  230 10 ] [ (full)    10 1  272 10 ] [ (full)    11 1  316 10 ]
-%         [ (full)    12 1  364 10 ] [ (full)    13 1  416 10 ] [ (full)    14 1  470 10 ]
-%         [ (full)    15 1  528 10 ] [ (full)    16 1  588 10 ] [ (full)    17 1  652 10 ]
-%         [ (full)    18 1  720 10 ] [ (full)    19 1  790 10 ] [ (full)    20 1  864 10 ]
-%         [ (full)    21 1  940 10 ] [ (full)    22 1 1020 10 ] [ (full)    23 0  920 12 ]
-%         [ (full)    24 0  992 12 ] [ (full)    25 0 1066 12 ] [ (full)    26 0 1144 12 ]
-%         [ (full)    27 0 1224 12 ] [ (full)    28 0 1306 12 ] [ (full)    29 0 1392 12 ]
-%         [ (full)    30 0 1480 12 ] [ (full)    31 0 1570 12 ] [ (full)    32 0 1664 12 ]
-%     ] def
-% 
-%     /i 0 def
-%     { % loop
-%         /m metrics i get def
-%         /frmt m 0 get def                          % Format of the symbol
-%         /mlyr m 1 get def                          % Data layers
-%         /icap m 2 get def                          % Reader initialisation capable
-%         /ncws m 3 get def                          % Total of codewords
-%         /bpcw m 4 get def                          % Bits per codeword
-%         /numecw ncws eclevel mul 100 div ecaddchars add ceiling cvi def
-%         msgbits length 0 eq {/numecw 0 def} if     % Error correction codewords 
-%         /numdcw ncws numecw sub def                % Data codewords
-%         /okay true def
-%         format (unset) ne format frmt ne and {/okay false def} if
-%         readerinit icap 1 ne and {/okay false def} if
-%         layers -1 ne layers mlyr ne and {/okay false def} if 
-%         msgbits length bpcw div ceiling cvi numdcw gt {/okay false def} if
-%         okay {exit} if
-%         /i i 1 add def
-%     } loop
-%     /layers mlyr def
-%     /format frmt def
 
+% TODO Hierachy parameters
+/diffside 21 def
+/sameshape false def
+/sameecc false def
+/hasslaves false def
 
-% Avoid 15-bit overflow when multiplying the digits by stealing from the second digit
-% m = 6364136223846793005 = 0x 5851 f42d 4c95 7f2d
-/m0 16#5851 16#1 add def  /m1 16#f42d 16#10000 sub def  /m2 16#4c95 def  /m3 16#7f2d def
+    % Determine the symbol size and capacity
+    /numdatamodules {
+        /c exch def
+        /r exch def
+        c r mul  % TODO Subtract finders, alignment patterns, metadata and color palette modules
+    } bind def
 
-/lcg64_temper {
+%    /minmods 999 def  % TODO
+%    ratio -1 ne {        % Fixed ratio
+%        /hgt minarea ratio div sqrt def
+%        /wid minarea ratio mul sqrt def
+%        /h hgt cvi def  /w wid cvi def
+%        % TODO Interatively grow, observing ratio, until we fit
+%        h w add 2 mod 1 eq {
+%            h w mul minarea lt {/h h 1 add def  /w w 1 add def} if
+%        } {
+%            hgt w mul wid h mul lt {
+%                /w w 1 add def
+%                h w mul minarea lt {
+%                    /w w 1 sub def  /h h 1 add def
+%                    h w mul minarea lt {/w w 2 add def} if
+%                } if
+%            } {
+%                /h h 1 add def
+%                h w mul minarea lt {
+%                    /h h 1 sub def  /w w 1 add def
+%                    h w mul minarea lt {/h h 2 add def} if
+%                } if
+%            } ifelse
+%        } ifelse
+%        /rows h def  /columns w def
+%    } {
+%        columns -1 eq {  % Fixed height
+%            % TODO Iteratively grow until we fit
+%            /columns minarea rows add 1 sub rows idiv dup rows add 2 mod 0 eq {1 add} if def
+%        } if
+%        rows -1 eq {     % Fixed width
+%            % TODO Iteratively grow until we fit
+%            /rows minarea columns add 1 sub columns idiv dup columns add 2 mod 0 eq {1 add} if def
+%        } if
+%    } ifelse
 
-    % Multiply seed by 6364136223846793005 then add 1
+% TODO dummy
+/rows 25 def
+/cols 25 def
+/c rows cols numdatamodules def
 
-    /p00 m0 s0 mul def  /p01 m0 s1 mul def  /p02 m0 s2 mul def  /p03 m0 s3 mul def
-    /p10 m1 s0 mul def  /p11 m1 s1 mul def  /p12 m1 s2 mul def  /p13 m1 s3 mul def
-    /p20 m2 s0 mul def  /p21 m2 s1 mul def  /p22 m2 s2 mul def  /p23 m2 s3 mul def
-    /p30 m3 s0 mul def  /p31 m3 s1 mul def  /p32 m3 s2 mul def  /p33 m3 s3 mul def
+    % Avoid 15-bit overflow when multiplying the digits by stealing from the second digit
+    % m = 6364136223846793005 = 0x 5851 f42d 4c95 7f2d
+    /m0 16#5851 16#1 add def  /m1 16#f42d 16#10000 sub def  /m2 16#4c95 def  /m3 16#7f2d def
 
-    /s3 p33 16#10000 mod                     1 add def  % 1 added here
-    /s2 p32 16#10000 mod p33 16#10000 idiv add
-        p23 16#10000 mod                       add def
-    /s1 p31 16#10000 mod p32 16#10000 idiv add
-        p22 16#10000 mod p23 16#10000 idiv add add
-        p13 16#10000 mod                       add def
-    /s0 p30 16#10000 mod p31 16#10000 idiv add
-        p21 16#10000 mod p22 16#10000 idiv add add
-        p12 16#10000 mod p13 16#10000 idiv add add
-        p03 16#10000 mod                       add def
+    /lcg64_temper {
 
-    % Simplify carry by making each digit positive by borrowing from more significant digit
-    /s3 s3 16#10000 add def
-    /s2 s2 16#ffff  add def
-    /s1 s1 16#ffff  add def
-    /s0 s0 16#ffff  add def
+        % Multiply seed by 6364136223846793005 then add 1
 
-    % Carry
-    /s2 s3 16#10000 idiv s2 add def  /s3 s3 16#10000 mod def
-    /s1 s2 16#10000 idiv s1 add def  /s2 s2 16#10000 mod def
-    /s0 s1 16#10000 idiv s0 add def  /s1 s1 16#10000 mod def
-                                     /s0 s0 16#10000 mod def
+        /p00 m0 s0 mul def  /p01 m0 s1 mul def  /p02 m0 s2 mul def  /p03 m0 s3 mul def
+        /p10 m1 s0 mul def  /p11 m1 s1 mul def  /p12 m1 s2 mul def  /p13 m1 s3 mul def
+        /p20 m2 s0 mul def  /p21 m2 s1 mul def  /p22 m2 s2 mul def  /p23 m2 s3 mul def
+        /p30 m3 s0 mul def  /p31 m3 s1 mul def  /p32 m3 s2 mul def  /p33 m3 s3 mul def
 
-    % Temper most significant 32 bits
-    s0 16#8000 sub 16#10000 mul s1 add 16#80000000 xor
-    16#ffffffff and
-    dup -11 bitshift xor
-    dup   7 bitshift 16#62d3a980 neg and xor  % 0x9D2C5680 - 0x100000000
-    dup  15 bitshift 16#103a0000 neg and xor  % 0xEFC60000 - 0x100000000
-    16#ffffffff and
-    dup -18 bitshift xor
+        /s3 p33 16#10000 mod                     1 add def  % 1 added here
+        /s2 p32 16#10000 mod p33 16#10000 idiv add
+            p23 16#10000 mod                       add def
+        /s1 p31 16#10000 mod p32 16#10000 idiv add
+            p22 16#10000 mod p23 16#10000 idiv add add
+            p13 16#10000 mod                       add def
+        /s0 p30 16#10000 mod p31 16#10000 idiv add
+            p21 16#10000 mod p22 16#10000 idiv add add
+            p12 16#10000 mod p13 16#10000 idiv add add
+            p03 16#10000 mod                       add def
 
-} bind def
+        % Simplify carry by making each digit positive by borrowing from more significant digit
+        /s3 s3 16#10000 add def
+        /s2 s2 16#ffff  add def
+        /s1 s1 16#ffff  add def
+        /s0 s0 16#ffff  add def
 
-/addtometabits {
-    dup metabits j 3 -1 roll putinterval
-    length j add /j exch def
-} bind def
+        % Carry
+        /s2 s3 16#10000 idiv s2 add def  /s3 s3 16#10000 mod def
+        /s1 s2 16#10000 idiv s1 add def  /s2 s2 16#10000 mod def
+        /s0 s1 16#10000 idiv s0 add def  /s1 s1 16#10000 mod def
+                                         /s0 s0 16#10000 mod def
 
-/c 179 def % TODO capacity
+        % Temper most significant 32 bits
+        s0 16#8000 sub 16#10000 mul s1 add 16#80000000 xor
+        16#ffffffff and
+        dup -11 bitshift xor
+        dup   7 bitshift 16#62d3a980 neg and xor  % 0x9D2C5680 - 0x100000000
+        dup  15 bitshift 16#103a0000 neg and xor  % 0xEFC60000 - 0x100000000
+        16#ffffffff and
+        dup -18 bitshift xor
+
+    } bind def
+
+    /addtometabits {
+        dup metabits j 3 -1 roll putinterval
+        length j add /j exch def
+    } bind def
+
 /bits c string def  % TODO set max
 /j 0 def
 [
   (01010) (00001) (00010) (00000) (00011) (11100) (01111) (00100)
   (00101) (11101) (0000) (0011) (0001) (0010) (0101) (1101) (0000)
 ] {addtobits} forall
+
+    /ldpcdummy {
+        % noop
+    } bind def
 
 % TODO LDPC, optimised based on capacity, not input length
 /wc [ 3 3 4 4 3 4 4 3 4 5 7 ] eclevel get def
@@ -929,173 +956,88 @@ begin
 /r 1 wc wr div sub def
 /k j wc mul wr idiv def   % TODO Use capacity to dynamically find wc and wr, not j
 
-/ldpcout k string def
-0 1 ldpcout length 1 sub {ldpcout exch 48 put} for
-bits j ldpcout putinterval
-/j j k add def
+    /ldpcout k string def
+    0 1 ldpcout length 1 sub {ldpcout exch 48 put} for
+    bits j ldpcout putinterval
+    /j j k add def
 
-% Add padding bits
-c j sub 1 add 2 idiv {
-    bits j 48 put
-    j 1 add c lt {bits j 1 add 49 put} if
-    /j j 2 add def
-} repeat
+    % Add padding bits up to capacity
+    c j sub 1 add 2 idiv {
+        bits j 48 put
+        j 1 add c lt {bits j 1 add 49 put} if
+        /j j 2 add def
+    } repeat
 
-% Interleave via pseudorandom permutation
-% TODO check
-/s0 16#0000 def  /s1 16#0000 def  /s2 16#0003 def  /s3 16#75C7 def  % s=226759
-c 1 sub -1 1 {
-    /l exch def
-    lcg64_temper
-    dup 0 lt {16#80000000 xor 2147483648.0 add} if
-    4294967296.0 div l 1 add mul cvi  % (float)UINT32_MAX = 65536.0 * 65536
-    /r exch def
-    bits l get bits r get
-    bits exch l exch put
-    bits exch r exch put
-} for
-
-/ldpcdummy {
-  % noop
-} bind def
-
-% TODO Dummy
-/colors 16 def
-/symtype (master) def
-%/symtype (slave) def
-/rows 25 def
-/cols 25 def
-/diffside 21 def
-/mask 2 def
-/sameshape false def
-/sameecc false def
-/hasslaves false def
-
-/metabits 80 string def
-/i 0 def  /j 0 def
-symtype (master) eq {
-
-    % Part I
-    colors ln 2 ln div round cvi 1 sub
-    3 tofixedbits addtometabits                                 % Nc
-    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
-
-    % Part II
-    /ss rows cols eq {0} {1} ifelse def
-    ss 1 tofixedbits addtometabits                              % SS
-    rows cols 2 copy lt {exch} if pop  % Max size
-    21 sub 16 idiv [ 0 1 2 2 3 3 3 3 ] exch get  /vf exch def
-    vf 2 tofixedbits addtometabits                              % VF
-    mask 3 tofixedbits addtometabits                            % MSK
-    hasslaves {(1)} {(0)} ifelse addtometabits                  % SF
-    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
-
-    % Part III
-    /vlen ss 0 eq {[2 2 3 4]} {[4 6 8 10]} ifelse vf get def
-    ss 0 eq {  % Square
-        cols 17 sub 4 idiv [ 0 4 8 16 ] vf get sub 1 sub
-        vlen tofixedbits addtometabits                          % V
-    } {  % Rectangular
-        cols 17 sub 4 idiv 1 sub
-        vlen 2 idiv tofixedbits addtometabits                   % V1
-        rows 17 sub 4 idiv 1 sub
-        vlen 2 idiv tofixedbits addtometabits                   % V2
-    } ifelse
-    /elen vf 2 mul 10 add def
-    wc 3 sub elen 2 idiv tofixedbits addtometabits              % E1
-    wr 4 sub elen 2 idiv tofixedbits addtometabits              % E2
-    hasslaves {  % Top, right, bottom, left
-        0 4 tofixedbits addtometabits                           % S
-    } if
-    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
-
-} {  % slave
-
-    % Part I
-    sameshape {0} {1} ifelse 1 tofixedbits addtometabits        % SS
-    sameecc   {0} {1} ifelse 1 tofixedbits addtometabits        % SE
-    hasslaves {1} {0} ifelse 1 tofixedbits addtometabits        % SF
-    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
-
-    % Part II
-    sameshape not {
-        diffside 17 sub 4 idiv 1 sub
-        5 tofixedbits addtometabits                             % V
-    } if
-    hasslaves {  % Top, right, bottom, left, skipping host
-        0 3 tofixedbits addtometabits                           % S
-    } if
-    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
-
-    % Part III
-    sameecc not {
-        rows cols 2 copy lt {exch} if pop  % Max size
-        21 sub 16 idiv [ 10 12 14 14 16 16 16 16 ] exch get
-        /elen exch def
-        wc 3 sub elen 2 idiv tofixedbits addtometabits          % E1
-        wr 4 sub elen 2 idiv tofixedbits addtometabits          % E2
-    } if
-    metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
-
-} ifelse
-/metabits metabits 0 j getinterval def
-
-% Define the color palette
-colors 4 eq {
-    /bi 0 def  /gi 1 def  /mi 2 def  /yi 3 def
-    /ki 4 def  /wi 5 def  % Extended
-    /palette <<
-        bi (0000FF)  gi (00FF00)  mi (FF00FF)  yi (FFFF00)
-        ki (000000)  wi (FFFFFF)
-    >> def
-    /palettelayout [bi gi mi yi] def
-} {
-    /rgbres <<
-          % r g b   Graduations
-       8  [ 2 2 2 ]
-      16  [ 4 2 2 ]
-      32  [ 4 4 2 ]
-      64  [ 4 4 4 ]
-     128  [ 8 4 4 ]
-     256  [ 8 8 4 ]
-    >> colors get def
-
-    /rvals rgbres 0 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
-    /gvals rgbres 1 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
-    /bvals rgbres 2 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
-
-    /palette colors dict def
-    /palettelayout colors array def
-    /i 0 def  /j 8 def
-    rvals {
+    % Interleave via pseudorandom permutation
+    % TODO check
+    /s0 16#0000 def  /s1 16#0000 def  /s2 16#0003 def  /s3 16#75C7 def  % s=226759
+    c 1 sub -1 1 {
+        /l exch def
+        lcg64_temper
+        dup 0 lt {16#80000000 xor 2147483648.0 add} if
+        4294967296.0 div l 1 add mul cvi  % (float)UINT32_MAX = 65536.0 * 65536
         /r exch def
-        gvals {
-            /g exch def
-            bvals {
-                /b exch def
-                r 16 bitshift g 8 bitshift or b or
-                (000000) 6 string copy dup 3 -1 roll 16 6 string cvrs dup length 6 exch sub exch putinterval
-                false
-                1 index (000000) eq {/ki i def  pop true} if
-                1 index (0000FF) eq {/bi i def  pop true} if
-                1 index (00FF00) eq {/gi i def  pop true} if
-                1 index (00FFFF) eq {/ci i def  pop true} if
-                1 index (FF0000) eq {/ri i def  pop true} if
-                1 index (FF00FF) eq {/mi i def  pop true} if
-                1 index (FFFF00) eq {/yi i def  pop true} if
-                1 index (FFFFFF) eq {/wi i def  pop true} if
-                not {  % Vertex in RGB space
-                    palettelayout j i put
-                    /j j 1 add def
-                } if
-                palette exch i exch put
-                /i i 1 add def
+        bits l get bits r get
+        bits exch l exch put
+        bits exch r exch put
+    } for
+
+    % Define the color palette
+    colors 4 eq {
+        /bi 0 def  /gi 1 def  /mi 2 def  /yi 3 def
+        /ki 4 def  /wi 5 def  % Extended
+        /palette <<
+            bi (0000FF)  gi (00FF00)  mi (FF00FF)  yi (FFFF00)
+            ki (000000)  wi (FFFFFF)
+        >> def
+        /palettelayout [bi gi mi yi] def
+    } {
+        /rgbres <<
+              % r g b   Graduations
+           8  [ 2 2 2 ]
+          16  [ 4 2 2 ]
+          32  [ 4 4 2 ]
+          64  [ 4 4 4 ]
+         128  [ 8 4 4 ]
+         256  [ 8 8 4 ]
+        >> colors get def
+
+        /rvals rgbres 0 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
+        /gvals rgbres 1 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
+        /bvals rgbres 2 get [ exch 1 sub dup 0 exch 1 exch {255 2 index div mul round cvi exch} for pop ] def
+
+        /palette colors dict def
+        /palettelayout colors array def
+        /i 0 def  /j 8 def
+        rvals {
+            /r exch def
+            gvals {
+                /g exch def
+                bvals {
+                    /b exch def
+                    r 16 bitshift g 8 bitshift or b or
+                    (000000) 6 string copy dup 3 -1 roll 16 6 string cvrs dup length 6 exch sub exch putinterval
+                    false
+                    1 index (000000) eq {/ki i def  pop true} if
+                    1 index (0000FF) eq {/bi i def  pop true} if
+                    1 index (00FF00) eq {/gi i def  pop true} if
+                    1 index (00FFFF) eq {/ci i def  pop true} if
+                    1 index (FF0000) eq {/ri i def  pop true} if
+                    1 index (FF00FF) eq {/mi i def  pop true} if
+                    1 index (FFFF00) eq {/yi i def  pop true} if
+                    1 index (FFFFFF) eq {/wi i def  pop true} if
+                    not {  % Vertex in RGB space
+                        palettelayout j i put
+                        /j j 1 add def
+                    } if
+                    palette exch i exch put
+                    /i i 1 add def
+                } forall
             } forall
         } forall
-    } forall
-    palettelayout 0 [ki bi gi ci ri mi yi wi] putinterval
+        palettelayout 0 [ki bi gi ci ri mi yi wi] putinterval
 
-} ifelse
+    } ifelse
 
     % Create the pixel map
     /pixs [rows cols mul {-1} repeat] def
@@ -1249,6 +1191,233 @@ colors 4 eq {
         pop
     } forall
 
+    % TODO Reserve the metadata and color palette modules by setting to zero
+
+%    % TODO Calculate the mask patterns
+%    /maskfuncs [
+%        {add 2 mod} bind
+%        {exch pop 2 mod} bind
+%        {pop 3 mod} bind
+%        {add 3 mod} bind
+%        {2 idiv exch 3 idiv add 2 mod} bind
+%        {mul dup 2 mod exch 3 mod add} bind
+%        {mul dup 2 mod exch 3 mod add 2 mod} bind
+%        {2 copy mul 3 mod 3 1 roll add 2 mod add 2 mod} bind
+%    ] def
+%    mask -1 ne {  % User specifies a mask
+%        /maskfuncs [maskfuncs mask 1 sub get] def
+%        /bestmaskval mask 1 sub def
+%    } if
+%    /masks maskfuncs length array def
+%    0 1 masks length 1 sub {
+%        /m exch def
+%        /mask size size mul array def
+%        0 1 size 1 sub {
+%            /j exch def
+%            0 1 size 1 sub {
+%                /i exch def
+%                i j maskfuncs m get exec 0 eq
+%                pixs i j qmv get -1 eq and {1} {0} ifelse
+%                mask i j qmv 3 -1 roll put
+%            } for
+%        } for
+%        masks m mask put
+%    } for
+
+%    % Walk the symbol placing the bitstream
+%    /databpm colors ln 2 ln div round cvi def
+%    /posx 0 def  /posy 0 def
+%    /i 0 def
+%    { % loop
+%        posx cols eq {exit} if
+%        pixs posx posy jmv get -1 eq {
+%            bits i databpm getinterval 0 exch {48 sub add 2 mul} forall 2 idiv
+%            pixs posx posy jmv 3 -1 roll put
+%            /i i databpm add def
+%        } if
+%        /posy posy 1 add def
+%        posy rows eq {/posy 0 def /posx posx 1 add def} if
+%    } loop
+
+%    % TODO Evaluate runlength encoded rows or columns in full symbols
+%    /evalfulln1n3 {
+%        /scrle exch def
+%        % Detect runs of 5 or more like modules
+%        /scr1 0 scrle { dup 5 ge {add 2 sub dup} if pop } forall def
+%        % Detect 1:1:3:1:1 ratio next to 4 modules of whitespace
+%        /scr3 0 def
+%        3 2 scrle length 3 sub {  % Scan odd (dark) runs within bounds
+%            /j exch def
+%            scrle j get 3 mod 0 eq {  % Multiple of 3 black modules
+%                /fact scrle j get 3 idiv def
+%                scrle j 2 sub 5 getinterval {fact eq} forall and exch pop and and {
+%                    j 3 eq j 4 add scrle length ge or {  % At either extent of run
+%                        /scr3 scr3 40 add def
+%                    } {  % Bounded by dark modules
+%                        scrle j 3 sub get 4 ge scrle j 3 add get 4 ge or {
+%                            /scr3 scr3 40 add def
+%                        } if
+%                    } ifelse
+%                } if
+%            } if
+%        } for
+%        scr1 scr3
+%    } bind def
+%
+%    % TODO Evaluation algorithm
+%    /evalfull {
+%        /sym exch def
+%
+%        /n1 0 def /n2 0 def /n3 0 def
+%        /rle size 1 add array def
+%        /lastpairs size array def
+%        /thispairs size array def
+%        /sizeadd1 size 1 add def
+%        0 1 size 1 sub {
+%            /i exch def
+%
+%            % Runlength encode (light, dark, light, ...) and evaluate each column
+%            mark 0 0
+%            i size dup dup mul 1 sub {
+%                sym exch get exch 1 index eq {exch 1 add exch} {1 exch} ifelse
+%            } for
+%            pop
+%            rle 0 counttomark 2 sub getinterval astore
+%            evalfulln1n3 n3 add /n3 exch def n1 add /n1 exch def
+%            pop
+%
+%            % Runlength encode (light, dark, light, ...) and evaluate each row
+%            /symrow sym i size mul size getinterval def
+%            mark 0 0
+%            symrow {
+%                exch 1 index eq {exch 1 add exch} {1 exch} ifelse
+%            } forall
+%            pop
+%            rle 0 counttomark 2 sub getinterval astore
+%            evalfulln1n3 n3 add /n3 exch def n1 add /n1 exch def
+%            pop
+%
+%            % Count and score same coloured blocks
+%            /lastpairs thispairs /thispairs lastpairs def def
+%            symrow 0 get 1 eq {0} {1} ifelse
+%            symrow {exch 1 index add exch} forall
+%            pop
+%            thispairs astore pop
+%            i 0 gt {
+%                mark
+%                lastpairs aload pop thispairs aload pop
+%                n2 size { exch sizeadd1 index add 3 and 0 eq {3 add} if } repeat
+%                /n2 exch def
+%                cleartomark
+%            } if
+%
+%        } for
+%
+%        % Score dark/light imbalance
+%        /dark 0 sym {add} forall def
+%        /n4 dark 100 mul size dup mul div 50 sub abs 5 div cvi 10 mul def
+%
+%        n1 n2 add n3 add n4 add
+%    } bind def
+%
+%    % Evaluate the masked symbols to find the most suitable
+%    /bestscore 999999999 def
+%    0 1 masks length 1 sub {
+%        /m exch def
+%        /masksym size size mul array def
+%        0 1 size size mul 1 sub {
+%            /i exch def
+%            masksym i pixs i get masks m get i get xor put
+%        } for
+%        masks length 1 ne {
+%            format (full) eq {
+%                masksym evalfull /score exch def
+%            } {
+%                masksym evalmicro /score exch def
+%            } ifelse
+%            score bestscore lt {
+%                /bestsym masksym def
+%                /bestmaskval m def
+%                /bestscore score def
+%            } if
+%        } {
+%            /bestsym masksym def
+%        } ifelse
+%    } for
+%    /pixs bestsym def
+
+/mask 2 def  % TODO dummy
+
+    % Derive the metadata
+    /metabits 80 string def
+    /i 0 def  /j 0 def
+    symtype (master) eq {
+
+        % Part I
+        colors ln 2 ln div round cvi 1 sub
+        3 tofixedbits addtometabits                                 % Nc
+        metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
+
+        % Part II
+        /ss rows cols eq {0} {1} ifelse def
+        ss 1 tofixedbits addtometabits                              % SS
+        rows cols 2 copy lt {exch} if pop  % Max size
+        21 sub 16 idiv [ 0 1 2 2 3 3 3 3 ] exch get  /vf exch def
+        vf 2 tofixedbits addtometabits                              % VF
+        mask 3 tofixedbits addtometabits                            % MSK
+        hasslaves {(1)} {(0)} ifelse addtometabits                  % SF
+        metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
+
+        % Part III
+        /vlen ss 0 eq {[2 2 3 4]} {[4 6 8 10]} ifelse vf get def
+        ss 0 eq {  % Square
+            cols 17 sub 4 idiv [ 0 4 8 16 ] vf get sub 1 sub
+            vlen tofixedbits addtometabits                          % V
+        } {  % Rectangular
+            cols 17 sub 4 idiv 1 sub
+            vlen 2 idiv tofixedbits addtometabits                   % V1
+            rows 17 sub 4 idiv 1 sub
+            vlen 2 idiv tofixedbits addtometabits                   % V2
+        } ifelse
+        /elen vf 2 mul 10 add def
+        wc 3 sub elen 2 idiv tofixedbits addtometabits              % E1
+        wr 4 sub elen 2 idiv tofixedbits addtometabits              % E2
+        hasslaves {  % Top, right, bottom, left
+            0 4 tofixedbits addtometabits                           % S
+        } if
+        metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
+
+    } {  % slave
+
+        % Part I
+        sameshape {0} {1} ifelse 1 tofixedbits addtometabits        % SS
+        sameecc   {0} {1} ifelse 1 tofixedbits addtometabits        % SE
+        hasslaves {1} {0} ifelse 1 tofixedbits addtometabits        % SF
+        metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
+
+        % Part II
+        sameshape not {
+            diffside 17 sub 4 idiv 1 sub
+            5 tofixedbits addtometabits                             % V
+        } if
+        hasslaves {  % Top, right, bottom, left, skipping host
+            0 3 tofixedbits addtometabits                           % S
+        } if
+        metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
+
+        % Part III
+        sameecc not {
+            rows cols 2 copy lt {exch} if pop  % Max size
+            21 sub 16 idiv [ 10 12 14 14 16 16 16 16 ] exch get
+            /elen exch def
+            wc 3 sub elen 2 idiv tofixedbits addtometabits          % E1
+            wr 4 sub elen 2 idiv tofixedbits addtometabits          % E2
+        } if
+        metabits i j i sub getinterval ldpcdummy addtometabits  /i j def
+
+    } ifelse
+    /metabits metabits 0 j getinterval def
+
     % Place the metadata
     /metacolors colors dup 8 gt {pop 8} if def
     /metabpm metacolors ln 2 ln div round cvi def
@@ -1274,23 +1443,6 @@ colors 4 eq {
         /i i metabpm add def
         /j j 1 add def
     } repeat
-
-% TODO take copies of occupied blocks for the masking
-
-%    % Walk the symbol placing the bitstream
-%    /databpm colors ln 2 ln div round cvi def
-%    /posx 0 def  /posy 0 def
-%    /i 0 def
-%    { % loop
-%        posx cols eq {exit} if
-%        pixs posx posy jmv get -1 eq {
-%            bits i databpm getinterval 0 exch {48 sub add 2 mul} forall 2 idiv
-%            pixs posx posy jmv 3 -1 roll put
-%            /i i databpm add def
-%        } if
-%        /posy posy 1 add def
-%        posy rows eq {/posy 0 def /posx posx 1 add def} if
-%    } loop
 
     <<
     /ren //renmatrix
