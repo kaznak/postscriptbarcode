@@ -1193,36 +1193,35 @@ begin
 
     % TODO Reserve the metadata and color palette modules by setting to zero
 
-%    % TODO Calculate the mask patterns
-%    /maskfuncs [
-%        {add 2 mod} bind
-%        {exch pop 2 mod} bind
-%        {pop 3 mod} bind
-%        {add 3 mod} bind
-%        {2 idiv exch 3 idiv add 2 mod} bind
-%        {mul dup 2 mod exch 3 mod add} bind
-%        {mul dup 2 mod exch 3 mod add 2 mod} bind
-%        {2 copy mul 3 mod 3 1 roll add 2 mod add 2 mod} bind
-%    ] def
-%    mask -1 ne {  % User specifies a mask
-%        /maskfuncs [maskfuncs mask 1 sub get] def
-%        /bestmaskval mask 1 sub def
-%    } if
-%    /masks maskfuncs length array def
-%    0 1 masks length 1 sub {
-%        /m exch def
-%        /mask size size mul array def
-%        0 1 size 1 sub {
-%            /j exch def
-%            0 1 size 1 sub {
-%                /i exch def
-%                i j maskfuncs m get exec 0 eq
-%                pixs i j qmv get -1 eq and {1} {0} ifelse
-%                mask i j qmv 3 -1 roll put
-%            } for
-%        } for
-%        masks m mask put
-%    } for
+    % Calculate the mask patterns
+    /maskfuncs [
+        {add colors mod} bind
+        {pop colors mod} bind
+        {exch pop colors mod} bind
+        {3 idiv exch 2 idiv add colors mod} bind
+        {2 idiv exch 3 idiv add colors mod} bind
+        {add dup 2 idiv exch 3 idiv add colors mod} bind
+        {2 copy exch dup mul mul 7 mod 3 1 roll exch dup mul add 2 mul 19 mod add colors mod} bind
+        {2 copy dup mul mul 5 mod 3 1 roll dup mul exch 2 mul add 13 mod add colors mod} bind
+    ] def
+    mask -1 ne {  % User specifies a mask
+        /maskfuncs [maskfuncs mask 1 sub get] def
+        /bestmaskval mask 1 sub def
+    } if
+    /masks maskfuncs length array def
+    0 1 masks length 1 sub {
+        /m exch def
+        /mask rows cols mul array def
+        0 1 cols 1 sub {
+            /j exch def
+            0 1 rows 1 sub {
+                /i exch def
+                pixs i j jmv get -1 eq {i j maskfuncs m get exec} {0} ifelse
+                mask i j jmv 3 -1 roll put
+            } for
+        } for
+        masks m mask put
+    } for
 
 %    % Walk the symbol placing the bitstream
 %    /databpm colors ln 2 ln div round cvi def
@@ -1346,7 +1345,8 @@ begin
 %    } for
 %    /pixs bestsym def
 
-/mask 2 def  % TODO dummy
+/mask 0 def  % TODO dummy
+/pixs masks mask get def  % TODO testing
 
     % Derive the metadata
     /metabits 80 string def
@@ -1466,7 +1466,7 @@ end
 
 3.5 dup scale
 
-25 25 moveto (JAB Code) (inkspread=0.1) /jabcode /uk.co.terryburton.bwipp findresource exec
+25 25 moveto (JAB Code) (inkspread=0.1 colors=256) /jabcode /uk.co.terryburton.bwipp findresource exec
 
 showpage
 
